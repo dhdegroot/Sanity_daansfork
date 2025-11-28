@@ -7,14 +7,17 @@ double fitfrac(double *f, double *n_c, double n, double &v, int C, double *N_c, 
 	double beta = 1.0/((n+a)*v);
 	double logbeta = log(beta);
 	q=0;
+    cerr << "I'm here 10a1 " << endl;
 	for(i=0;i<C;++i){
         Q[i] = log( N_c[i]) + n_c[i]*v -logbeta;
 		q += N_c[i];
     }
+        cerr << "I'm here 10a2 " << endl;
 	q =log(q+b);//initial guess for q
 	double dq = log(2.0);
 
     /**** get initial nor ****/
+            cerr << "I'm here 10a3 " << endl;
     nor = beta*normalization(Q,C,q)+b*exp(-q);
     /**** initial c too small. Set as lower bound and increase by factor 2 until a value too large is found****/
     if(nor < 1){
@@ -34,6 +37,7 @@ double fitfrac(double *f, double *n_c, double n, double &v, int C, double *N_c, 
         }
         qmax = q;
     }
+            cerr << "I'm here 10a3 " << endl;
     /***now do the bisection*****/
     double tol = 0.0000001;
     double diff = 1.0;
@@ -47,6 +51,7 @@ double fitfrac(double *f, double *n_c, double n, double &v, int C, double *N_c, 
         }
         diff = fabs(nor-1.0);
     }
+            cerr << "I'm here 10a4 " << endl;
 
     q = (qmax+qmin)/2;
 	for(i=0;i<C;++i){

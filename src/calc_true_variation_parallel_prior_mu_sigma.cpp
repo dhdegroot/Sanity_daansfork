@@ -558,6 +558,7 @@ void get_gene_expression_level(double *n_c, double *N_c, double n, double vmin, 
 		cerr << "I'm here 10 " << k << endl;
 		v = vmin * exp(deltav*k);
 		beta = 1.0/((n+a)*v);
+		cerr << "I'm here 10a " << k << endl;
 		//#pragma omp critical
 		q = fitfrac(f,n_c,n,v,C,N_c,a,b);
 		cerr << "I'm here 11 " << k << endl;
