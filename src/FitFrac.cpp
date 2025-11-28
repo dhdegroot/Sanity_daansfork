@@ -37,7 +37,8 @@ double fitfrac(double *f, double *n_c, double n, double &v, int C, double *N_c, 
         }
         qmax = q;
     }
-            cerr << "I'm here 10a3 " << endl;
+    cerr << "I'm here 10a3 " << endl;
+        cerr << "I'm here test " << qmin << endl;
     /***now do the bisection*****/
     double tol = 0.0000001;
     double diff = 1.0;
