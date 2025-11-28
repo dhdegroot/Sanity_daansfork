@@ -144,6 +144,7 @@ int main (int argc, char** argv){
 	
 	double **delta = nullptr;
 	double **var_delta = nullptr;
+	cerr << "I'm here 1" << endl;
 	if (post_v_output){
 		delta = new double *[G];
 		var_delta = new double *[G];
@@ -152,6 +153,8 @@ int main (int argc, char** argv){
 			var_delta[g] = new double [C];
 		}
 	}
+	cerr << "I'm here 2" << endl;
+
 	double v;
 	double deltav = log(vmax/vmin)/((double) numbin-1);
 	double **lik = new double *[G];
@@ -160,6 +163,7 @@ int main (int argc, char** argv){
 		for(k=0;k<numbin;k++)
 			lik[g][k] = -1.0;
 	}
+	cerr << "I'm here 3" << endl;
 
 	// Declare output variables for when we want to store results for maximum likelihood estimate for v_g
 	double *var_gene_v_ml = nullptr;
@@ -178,7 +182,7 @@ int main (int argc, char** argv){
 			var_delta_v_ml[g] = new double [C];
 		}
 	}
-
+	cerr << "I'm here 4" << endl;
 	double* row_delta = nullptr;
 	double* row_var_delta = nullptr;
 	double* row_delta_v_ml = nullptr;
@@ -189,7 +193,7 @@ int main (int argc, char** argv){
 	if ( N_est < G ){
 		// start timer
 		clock_t begin = clock();
-
+		cerr << "I'm here 5" << endl;
 		// run on N_est genes
 		for(g=0;g<N_est;++g){
 			if (post_v_output){
@@ -529,6 +533,7 @@ void get_gene_expression_level(double *n_c, double *N_c, double n, double vmin, 
 	double *f = new double[C];
 	double **delta_v = new double *[numbin];
     double **sig2_delta_v = new double *[numbin];
+	cerr << "I'm here 6" << endl;
 	for(k=0;k<numbin;++k){
         delta_v[k] = new double [C];
         sig2_delta_v[k] = new double [C];
@@ -615,7 +620,7 @@ void get_gene_expression_level(double *n_c, double *N_c, double n, double vmin, 
             }
         }
 	}// end v bins loop
-
+	cerr << "I'm here 11" << endl;
 	// get normalized likelihood from loglikelihood
 	double sum_L;
 	sum_L = 0.0;
@@ -627,6 +632,7 @@ void get_gene_expression_level(double *n_c, double *N_c, double n, double vmin, 
 	for(k=0;k<numbin;k++){
 		lik[k] /= sum_L;
 	}
+	cerr << "I'm here 12" << endl;
 
 	/*
 	// Multiply by prior
