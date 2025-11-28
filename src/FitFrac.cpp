@@ -41,9 +41,13 @@ double fitfrac(double *f, double *n_c, double n, double &v, int C, double *N_c, 
     /***now do the bisection*****/
     double tol = 0.0000001;
     double diff = 1.0;
+    cerr << "I'm here 10b1 " << qmin << endl;
+    cerr << "I'm here 10b2 " << qmax << endl;
     while(diff > tol){
+        cerr << "I'm here 10b3 " << diff << endl;
         q = (qmax+qmin)/2;
     	nor = beta*normalization(Q,C,q)+b*exp(-q);
+        cerr << "I'm here 10b4 " << nor << endl;
         if(nor > 1){
             qmin = q;
         }else{
