@@ -538,12 +538,13 @@ void get_gene_expression_level(double *n_c, double *N_c, double n, double vmin, 
         delta_v[k] = new double [C];
         sig2_delta_v[k] = new double [C];
     }
-
+	cerr << "I'm here 7" << endl;
 	/*** To compute var of delta ***/
     double *sig2_delta_c = new double [C];
     double *sig2_delta_num = new double [C];
     double *sig2_delta_den2 = new double [C];
     double sig2_delta_den1;
+	cerr << "I'm here 8" << endl;
 
 	double *mu_v = new double[numbin];
 	double Lmax = -1e+100;
@@ -551,34 +552,42 @@ void get_gene_expression_level(double *n_c, double *N_c, double n, double vmin, 
     double v;
 	double deltav;
     deltav = log(vmax/vmin)/((double) numbin-1);
+	cerr << "I'm here 9" << endl;
 
 	for(k=0;k<numbin;++k){
+		cerr << "I'm here 10 " << k << endl;
 		v = vmin * exp(deltav*k);
 		beta = 1.0/((n+a)*v);
 		//#pragma omp critical
 		q = fitfrac(f,n_c,n,v,C,N_c,a,b);
-
+		cerr << "I'm here 11 " << k << endl;
 		mu_v[k] = Psi_0(n+a)-q; /*** equation (85) ***/
+		cerr << "I'm here 12 " << k << endl;
 
 		double tot = 0;
 		for(i=0;i<C;++i){
 			tot += f[i];
 		}
+		cerr << "I'm here 13 " << k << endl;
 		delsq = 0;
 		L = -0.5*((double) C)*log(v); // (56) 1st term
+			cerr << "I'm here 14 " << k << endl;
 		for(i=0;i<C;++i){
 			delta_v[k][i] = log(f[i]) - log(N_c[i]) + q; // equation (67)
 			L += n_c[i]*delta_v[k][i];// Bug fix: remove a term as in Equation 19 of Sanity paper SI
 			delsq += delta_v[k][i]*delta_v[k][i];
 		}
+		cerr << "I'm here 15 " << k << endl;
 		L -= delsq/(2*v);// (56) 2nd term
 		L -= (n+a)*q;//4th term in equation (56)
+		cerr << "I'm here 16 " << k << endl;
 
 		// get the determinant of the matrix
 		ldet = 0.0;
 		for(i=0;i<C;++i){
 			ldet += (f[i]*f[i])/(f[i]+beta);
 		}
+		cerr << "I'm here 17 " << k << endl;
 
 		ldet = log(1 - ldet);
 		for(i=0;i<C;++i){
@@ -587,7 +596,8 @@ void get_gene_expression_level(double *n_c, double *N_c, double n, double vmin, 
 		L -= 0.5*ldet;
 		// substract prior with a = 1, b = 1 ( log(v^a*exp(-b*v)) = alog(v) - bv
 		lik[k] = L;
-		
+				cerr << "I'm here 18 " << k << endl;
+
 		if(L > Lmax){
 			Lmax = L;
 			Lmax_ind = k;
@@ -598,6 +608,7 @@ void get_gene_expression_level(double *n_c, double *N_c, double n, double vmin, 
 		for(i=0;i<C;++i){
 			sig2_delta_c[i] = (n+a)*f[i]*f[i]/((n+a)*f[i] + inv_v);
 		}
+				cerr << "I'm here 19 " << k << endl;
 		/* Compute the full sum of the denominator in Delta_delta and the second tern in the denominator*/
 		sig2_delta_den1 = 1.0;
 		for(i=0;i<C;++i){
@@ -608,10 +619,13 @@ void get_gene_expression_level(double *n_c, double *N_c, double n, double vmin, 
 		for(i=0;i<C;i++){
 			sig2_delta_num[i] = sig2_delta_den1 + sig2_delta_c[i];
 		}
+				cerr << "I'm here 20 " << k << endl;
+
 		/* compute sig2_delta */
 		for(i=0;i<C;++i){
 			sig2_delta_v[k][i] = sig2_delta_num[i]/(sig2_delta_den1*sig2_delta_den2[i]);
 		}
+		cerr << "I'm here 21 " << k << endl;
 
         // fix computation of asymmetric sig2_delta for zero count
         for(i=0;i<C;++i){
