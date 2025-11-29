@@ -137,6 +137,8 @@ int main (int argc, char** argv){
 	}else{
 		cerr << usage_bytes/1e3 << " KB\n";
 	}
+	cerr << std::setprecision(10);
+	cout << std::setprecision(10);
     // Declare output variables
 	double *mu = new double [G];
 	double *var_mu = new double [G];
