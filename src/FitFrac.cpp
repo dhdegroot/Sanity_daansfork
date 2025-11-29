@@ -22,7 +22,7 @@ double fitfrac(double *f, double *n_c, double n, double &v, int C, double *N_c, 
 
     /**** get initial nor ****/
     cerr << "I'm here 10a3 " << endl;
-    cerr << "Q, C, q, b: " << Q[0] << ", " << C << ", " << q << ", " << b << ", " << endl;
+    cerr << "Q[2], N_c[2], n_c[2], v, logbeta, C, q, b: " << Q[2] << ", " << N_c[2] << ", "<< n_c[2] << ", "<< v << ", "<< logbeta << ", " << C << ", " << q << ", " << b << ", " << endl;
     nor = beta*normalization(Q,C,q)+b*exp(-q);
     cerr << "nor, beta*normalization: " << nor << ", " << beta*normalization(Q,C,q) << endl;
 
