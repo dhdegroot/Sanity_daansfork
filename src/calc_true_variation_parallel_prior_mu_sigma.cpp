@@ -828,22 +828,18 @@ void parse_argv(int argc,char** argv, string &in_file, string &gene_name_file, s
 				if(j==9) {no_norm_str = argv[idx+1];}
 				if(j==10) {max_v_str = argv[idx+1];}
 				// add '/' to out_folder if not already
-				// if (j==1){
-				// 	cerr << "I'm here: " << out_folder << endl;
-				// 	if( j == 1 && out_folder.back() != '/' ){
-				// 		cerr << out_folder << endl;
-				// 		out_folder = out_folder + '/';
-				// 		cerr << out_folder << endl;
-				// 	}
-				// }
-
+				if( j == 1 && out_folder.back() != '/' ){
+					cerr << out_folder << endl;
+					out_folder = out_folder + '/';
+					cerr << out_folder << endl;
+				}
             }
-		}
+        }
 		if (idx == 0 && j == 0){
-			cerr << "Error in argument parsing :\n"
-			<< "missing input file name\n";
+        	cerr << "Error in argument parsing :\n"
+            << "missing input file name\n";
 			show_usage();
-		}
+        }
 		idx = 0;
     }
 
