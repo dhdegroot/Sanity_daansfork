@@ -806,7 +806,8 @@ void parse_argv(int argc,char** argv, string &in_file, string &gene_name_file, s
     for(j=0;j<N_param;j++){
         idx = 0;
         for(i=1;i<argc;i++){
-            if (argv[i] == to_find[j][0] || argv[i] == to_find[j][1]){
+            // if (argv[i] == to_find[j][0] || argv[i] == to_find[j][1]){
+			if (std::string(argv[i]) == to_find[j][0] || std::string(argv[i]) == to_find[j][1]){
 				idx = i;
                 if ( idx+1 > argc-1 ){
                     cerr << "Error in argument parsing :\n"
@@ -825,7 +826,7 @@ void parse_argv(int argc,char** argv, string &in_file, string &gene_name_file, s
 				if(j==9) no_norm_str = argv[idx+1];
 				if(j==10) max_v_str = argv[idx+1];
 				// add '/' to out_folder if not already
-				// if( j == 1 && out_folder.back() != '/' ) out_folder = out_folder + '/';
+				if( j == 1 && out_folder.back() != '/' ) out_folder = out_folder + '/';
             }
         }
 		// if (idx == 0 && j == 0){
