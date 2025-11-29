@@ -74,10 +74,12 @@ int main (int argc, char** argv){
         n_c[g] = new double [C];
 		n[g] = 0;
 	}
+	cerr << "Just after initializing: n_c[0][2]: " << n_c[0][2] << endl;
+
 	// Gene and cell names
 	string *gene_names = new string [G];
 	string *cell_names = new string [C];
-    cerr << "Just after initializing: n_c[0][2]: " << n_c[0][2] << endl;
+    cerr << "Little bit more after initializing: n_c[0][2]: " << n_c[0][2] << endl;
 
 	// Read input file
 	if (in_file_extension == "mtx"){
