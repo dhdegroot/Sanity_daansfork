@@ -28,48 +28,49 @@ void parse_argv(int argc,char** argv, string &in_file, string &gene_name_file, s
 static void show_usage(void);
 
 int main (int argc, char** argv){
-	string in_file("");
-	string gene_name_file("none");
-	string cell_name_file("none");
-	string in_file_extension("");
-	string out_folder("");
-	int N_threads(4);
-	bool print_extended_output(false);
-	double vmin = 0.001;
-    double vmax = 50.0;
-	int numbin = 160;
-	int N_char;
-	bool no_norm(false);
-	bool max_v_output(false);
-	bool post_v_output(true);
-	parse_argv(argc, argv, in_file, gene_name_file, cell_name_file, in_file_extension, out_folder, N_threads, print_extended_output, vmin, vmax, numbin, N_char, no_norm, max_v_output, post_v_output);
+	// string in_file("");
+	// string gene_name_file("none");
+	// string cell_name_file("none");
+	// string in_file_extension("");
+	// string out_folder("");
+	// int N_threads(4);
+	// bool print_extended_output(false);
+	// double vmin = 0.001;
+    // double vmax = 50.0;
+	// int numbin = 160;
+	// int N_char;
+	// bool no_norm(false);
+	// bool max_v_output(false);
+	// bool post_v_output(true);
+	// parse_argv(argc, argv, in_file, gene_name_file, cell_name_file, in_file_extension, out_folder, N_threads, print_extended_output, vmin, vmax, numbin, N_char, no_norm, max_v_output, post_v_output);
 
 	// count Number of genes and cells
 	int G, C;
 	// Number of rows in file
-	int N_rows;
+	// int N_rows;
 	// Gene idx map for mtx
-	map<int,int> gene_idx;
+	// map<int,int> gene_idx;
 
-	if (in_file_extension == "mtx"){
-		Get_G_C_MTX(in_file, N_rows, G, C, gene_idx);
-		fprintf(stderr, "There were %d rows\n", N_rows);
-	} else {
-		Get_G_C_UMIcountMatrix(in_file, N_rows, G, C, N_char);
-		fprintf(stderr, "There were %d rows\n", N_rows);
-	}
-	fprintf(stderr, "There were %d genes and %d cells\n",G,C);
+	// if (in_file_extension == "mtx"){
+	// 	Get_G_C_MTX(in_file, N_rows, G, C, gene_idx);
+	// 	fprintf(stderr, "There were %d rows\n", N_rows);
+	// } else {
+	// 	Get_G_C_UMIcountMatrix(in_file, N_rows, G, C, N_char);
+	// 	fprintf(stderr, "There were %d rows\n", N_rows);
+	// }
+	// fprintf(stderr, "There were %d genes and %d cells\n",G,C);
 
 	int g, c, k;
-	// Count per cell
-	double *N_c = new double [C];
-    for(c=0;c<C;++c){
-        N_c[c] = 0;
-    }
+	// // Count per cell
+	// double *N_c = new double [C];
+    // for(c=0;c<C;++c){
+    //     N_c[c] = 0;
+    // }
 	// Count per gene
 	cerr << "G, C: " << G << ", " << C << endl;
 	G = 25281;
 	C = 21;
+	cerr << "G, C: " << G << ", " << C << endl;
 	double *n = new double [G];
 	// count per gene and per cell
     double **n_c = new double *[G];
@@ -78,462 +79,462 @@ int main (int argc, char** argv){
 		n[g] = 0;
 	}
 	cerr << "Just after initializing: n_c[0][2]: " << n_c[0][2] << endl;
-
+	exit(0);
 	// Gene and cell names
-	string *gene_names = new string [G];
-	string *cell_names = new string [C];
-    cerr << "Little bit more after initializing: n_c[0][2]: " << n_c[0][2] << endl;
+	// string *gene_names = new string [G];
+	// string *cell_names = new string [C];
+    // cerr << "Little bit more after initializing: n_c[0][2]: " << n_c[0][2] << endl;
 
-	// Read input file
-	if (in_file_extension == "mtx"){
-		cerr << "Before going into ReadMTX: n_c[0][2]: " << n_c[0][2] << endl;
-		ReadMTX(in_file, gene_name_file, cell_name_file, n_c, N_c, n, gene_names, cell_names, N_rows, G, C, gene_idx);
-	} else {
-		ReadUMIcountMatrix(in_file, n_c, N_c, n, gene_names, cell_names, N_rows, G, C, N_char);
-	}
-	cerr << "After reading: g=0, n_c[0][2]: " << n_c[0][2] << endl;
+	// // Read input file
+	// if (in_file_extension == "mtx"){
+	// 	cerr << "Before going into ReadMTX: n_c[0][2]: " << n_c[0][2] << endl;
+	// 	ReadMTX(in_file, gene_name_file, cell_name_file, n_c, N_c, n, gene_names, cell_names, N_rows, G, C, gene_idx);
+	// } else {
+	// 	ReadUMIcountMatrix(in_file, n_c, N_c, n, gene_names, cell_names, N_rows, G, C, N_char);
+	// }
+	// cerr << "After reading: g=0, n_c[0][2]: " << n_c[0][2] << endl;
 
-	// Remove the total UMI correction if no cell size normalization option is true
-	if (no_norm){
-		cerr << "No cell size normalization will be performed\n";
+	// // Remove the total UMI correction if no cell size normalization option is true
+	// if (no_norm){
+	// 	cerr << "No cell size normalization will be performed\n";
 
-		// get mean count per cell
-		double mean_N_c = 0;
-		for(c=0;c<C;++c){
-			mean_N_c += N_c[c];
-		}
-		mean_N_c /= C;
+	// 	// get mean count per cell
+	// 	double mean_N_c = 0;
+	// 	for(c=0;c<C;++c){
+	// 		mean_N_c += N_c[c];
+	// 	}
+	// 	mean_N_c /= C;
 
-		// Now replce N_c by N
-		for(c=0;c<C;++c){
-			N_c[c] = mean_N_c;
-		}
-	}
-
-	// alpha and beta of gamma prior on mu
-	double a;
-	double b;
-	a = 1.0;
-	b = 0.0;
-
-	// Estimage memory usage
-	double size_of_double = 8;
-
-	// main double variables:
-	// G-array : n, mu, var_mu, var_gene
-	// C-array : N_c
-	// GxC array : n_c, delta, var_delta
-	// Gxnumbin array : lik
-	//
-	// parallel loop variables:
-	// C-array: f, sig2_delta_c, sig2_delta_num, sig2_delta_den2, Q
-	// numbin-array: mu_v
-	// Cxnumbin-array: delta_v, sig2_delta_v
-	//
-	//
-	double usage_bytes = 1.1*(4*G + C + 3*G*C + G*numbin + (5*C + numbin + 2*C*numbin)*N_threads  )*size_of_double;
-	if (max_v_output && post_v_output){
-		usage_bytes *= 4;
-	}
-
-	cerr << std::setprecision(3);
-	cerr << "Estimated memory usage: ";
-	if ( usage_bytes > 1e9 ){
-		cerr << usage_bytes/1e9 << " GB\n";
-	}else if ( usage_bytes > 1e6 ){
-		cerr << usage_bytes/1e6 << " MB\n";
-	}else{
-		cerr << usage_bytes/1e3 << " KB\n";
-	}
-	cerr << std::setprecision(10);
-	cout << std::setprecision(10);
-    // Declare output variables
-	double *mu = new double [G];
-	double *var_mu = new double [G];
-	double *var_gene = new double [G];
-	
-	double **delta = nullptr;
-	double **var_delta = nullptr;
-	cerr << "I'm here 1" << endl;
-	if (post_v_output){
-		delta = new double *[G];
-		var_delta = new double *[G];
-		for( g=0; g<G; ++g){
-			delta[g] = new double [C];
-			var_delta[g] = new double [C];
-		}
-	}
-	cerr << "I'm here 2" << endl;
-
-	double v;
-	double deltav = log(vmax/vmin)/((double) numbin-1);
-	double **lik = new double *[G];
-	for(g=0;g<G;g++){
-		lik[g] = new double [numbin];
-		for(k=0;k<numbin;k++)
-			lik[g][k] = -1.0;
-	}
-	cerr << "I'm here 3" << endl;
-
-	// Declare output variables for when we want to store results for maximum likelihood estimate for v_g
-	double *var_gene_v_ml = nullptr;
-	double *mu_v_ml = nullptr;
-	double *var_mu_v_ml = nullptr;
-	double **delta_v_ml = nullptr;
-	double **var_delta_v_ml = nullptr;
-	if (max_v_output){
-		var_gene_v_ml = new double [G];
-		mu_v_ml = new double [G];
-		var_mu_v_ml = new double [G];
-		delta_v_ml = new double *[G];
-		var_delta_v_ml = new double *[G];
-		for( g=0; g<G; ++g){
-			delta_v_ml[g] = new double [C];
-			var_delta_v_ml[g] = new double [C];
-		}
-	}
-	cerr << "I'm here 4" << endl;
-	double* row_delta = nullptr;
-	double* row_var_delta = nullptr;
-	double* row_delta_v_ml = nullptr;
-	double* row_var_delta_v_ml = nullptr;
-
-	// Estimate running time:
-	int N_est = 10;
-	if ( N_est < G ){
-		// start timer
-		clock_t begin = clock();
-		cerr << "I'm here 5" << endl;
-		// run on N_est genes
-		for(g=0;g<N_est;++g){
-			if (post_v_output){
-				row_delta = delta[g];
-				row_var_delta = var_delta[g];
-			}
-			if (max_v_output){
-				row_delta_v_ml = delta_v_ml[g];
-				row_var_delta_v_ml = var_delta_v_ml[g];
-			}
-			cerr << "g, n_c[g][2]: " << g << ", " << n_c[g][2] << endl;
-			get_gene_expression_level(n_c[g],N_c,n[g],vmin,vmax,mu[g],var_mu[g],row_delta,row_var_delta,C,numbin,a,b,lik[g], var_gene_v_ml[g], mu_v_ml[g], var_mu_v_ml[g], row_delta_v_ml, row_var_delta_v_ml);
-		}
-
-		// stop timer
-		clock_t end = clock();
-		double elapsed_secs = double(end - begin) / CLOCKS_PER_SEC;
-		double estimated_running_time = elapsed_secs/N_est*(G-N_est)/N_threads;
-
-		// output esimated running time
-		cerr << "Estimated running time: ";
-		if ( estimated_running_time > 86400 ){
-			cerr << estimated_running_time/(3600*24) << " days ";
-		}else if ( estimated_running_time > 3600 ){
-			cerr << estimated_running_time/3600 << " hours ";
-		}else if ( estimated_running_time > 60 ){
-			cerr << estimated_running_time/60 << " minutes ";
-		}else{
-			cerr << estimated_running_time << " seconds ";
-		}
-		cerr << "(Excluding reading/writing operations.)\n";
-        }else{
-		N_est = 0;
-	}
-	cerr << std::setprecision(6);
-	cout << std::setprecision(6);
-
-   	// Get Loglikelihood :
-	cerr << "Fit gene expression levels\n";
-	int g_print(G/(N_threads*40));
-    #pragma omp parallel for num_threads(N_threads)
-	for(g=N_est;g<G;++g){
-		if (g == g_print){
-			fprintf(stderr, "First process now fitting gene %d out of %d.\n", g, (int) G/N_threads);
-			g_print *= 2;
-		}
-
-		if (post_v_output){
-			row_delta = delta[g];
-			row_var_delta = var_delta[g];
-		}
-		if (max_v_output){
-			row_delta_v_ml = delta_v_ml[g];
-			row_var_delta_v_ml = var_delta_v_ml[g];
-		}
-		get_gene_expression_level(n_c[g],N_c,n[g],vmin,vmax,mu[g],var_mu[g],row_delta,row_var_delta,C,numbin,a,b,lik[g], var_gene_v_ml[g], mu_v_ml[g], var_mu_v_ml[g], row_delta_v_ml, row_var_delta_v_ml);
-	}
-
-	// Create subfolder if results need to be stored that take the maximum posterior value for v_g
-	// string out_subfolder = "";
-	// if (max_v_output){
-	// 	out_subfolder = out_folder + "/using_max_posterior_v_g/";
-	// 	#ifdef _WIN32
-	// 		_mkdir(out_subfolder.c_str());  // Use _mkdir on Windows
-	// 	#else
-	// 		mkdir(out_subfolder.c_str(), 0777);  // Use mkdir on Unix-like systems with full permissions
-	// 	#endif
+	// 	// Now replce N_c by N
+	// 	for(c=0;c<C;++c){
+	// 		N_c[c] = mean_N_c;
+	// 	}
 	// }
 
-	// Write output files
+	// // alpha and beta of gamma prior on mu
+	// double a;
+	// double b;
+	// a = 1.0;
+	// b = 0.0;
 
-	cerr << "Print output\n";
-	// Write log expression table and error bars table
-	if (post_v_output){
-		ofstream out_exp_lev, out_d_exp_lev, out_exp_lev_v_ml, out_d_exp_lev_v_ml;
-		out_exp_lev.open(out_folder + "log_transcription_quotients.txt",ios::out);
-		out_d_exp_lev.open(out_folder + "ltq_error_bars.txt",ios::out);
+	// // Estimage memory usage
+	// double size_of_double = 8;
 
-		out_exp_lev << "GeneID";
-		out_d_exp_lev << "GeneID";
-		for(c=0;c<C;c++){
-			out_exp_lev << "\t" << cell_names[c].c_str();
-			out_d_exp_lev << "\t" << cell_names[c].c_str();
-		}
-		out_exp_lev << "\n";
-		out_d_exp_lev << "\n";
+	// // main double variables:
+	// // G-array : n, mu, var_mu, var_gene
+	// // C-array : N_c
+	// // GxC array : n_c, delta, var_delta
+	// // Gxnumbin array : lik
+	// //
+	// // parallel loop variables:
+	// // C-array: f, sig2_delta_c, sig2_delta_num, sig2_delta_den2, Q
+	// // numbin-array: mu_v
+	// // Cxnumbin-array: delta_v, sig2_delta_v
+	// //
+	// //
+	// double usage_bytes = 1.1*(4*G + C + 3*G*C + G*numbin + (5*C + numbin + 2*C*numbin)*N_threads  )*size_of_double;
+	// if (max_v_output && post_v_output){
+	// 	usage_bytes *= 4;
+	// }
 
-		for(g=0;g<G;g++){
-		out_exp_lev << gene_names[g].c_str();
-		out_d_exp_lev << gene_names[g].c_str();
-			for(c=0;c<C;c++){
-				out_exp_lev << "\t" << mu[g] + delta[g][c];
-				out_d_exp_lev << "\t" << sqrt( var_mu[g] + var_delta[g][c] );
-			}
-			if ( g != G-1 ){
-				out_exp_lev << "\n";
-				out_d_exp_lev << "\n";
-			}
-		}
-		out_exp_lev.close();
-		out_d_exp_lev.close();
-
-		if ( print_extended_output ){
-
-			// Compute variance : \int v*p(v) dv
-			for(g=0; g<G; ++g){
-				var_gene[g] = 0.0;
-				for(k=0;k<numbin;++k){
-					v = vmin * exp(deltav*k);
-					var_gene[g] += v*lik[g][k];
-				}
-			}
-
-			cerr << "Print extended output\n";
-			string my_file;
-			FILE *out_gene, *out_cell, *out_mu, *out_dmu, *out_var_gene, *out_delta, *out_ddelta;
-			// output files
-			my_file = out_folder + "geneID.txt";
-			out_gene = (FILE *) fopen(my_file.c_str(),"w");
-			if(out_gene == NULL){
-				fprintf(stderr,"Cannot open output file %s\n",my_file.c_str());
-				exit(EXIT_FAILURE);
-			}
-
-			my_file = out_folder + "cellID.txt";
-			out_cell = (FILE *) fopen(my_file.c_str(),"w");
-			if(out_cell == NULL){
-				fprintf(stderr,"Cannot open output file %s\n",my_file.c_str());
-				exit(EXIT_FAILURE);
-			}
-
-			my_file = out_folder + "mu.txt";
-			out_mu = (FILE *) fopen(my_file.c_str(),"w");
-			if(out_mu == NULL){
-				fprintf(stderr,"Cannot open output file %s\n",my_file.c_str());
-				exit(EXIT_FAILURE);
-			}
-
-			my_file = out_folder + "d_mu.txt";
-			out_dmu = (FILE *) fopen(my_file.c_str(),"w");
-			if(out_dmu == NULL){
-				fprintf(stderr,"Cannot open output file %s\n",my_file.c_str());
-				exit(EXIT_FAILURE);
-			}
-
-			my_file = out_folder + "variance.txt";
-			out_var_gene = (FILE *) fopen(my_file.c_str(),"w");
-			if(out_var_gene == NULL){
-				fprintf(stderr,"Cannot open output file %s\n",my_file.c_str());
-				exit(EXIT_FAILURE);
-			}
-
-			my_file = out_folder + "delta.txt";
-			out_delta = (FILE *) fopen(my_file.c_str(),"w");
-			if(out_delta == NULL){
-				fprintf(stderr,"Cannot open output file %s\n",my_file.c_str());
-				exit(EXIT_FAILURE);
-			}
-
-			my_file = out_folder + "d_delta.txt";
-			out_ddelta = (FILE *) fopen(my_file.c_str(),"w");
-			if(out_ddelta == NULL){
-				fprintf(stderr,"Cannot open output file %s\n",my_file.c_str());
-				exit(EXIT_FAILURE);
-			}
-
-			// output cell name
-			for(c=0;c<C;c++){
-				fprintf(out_cell,"%s\n",cell_names[c].c_str());
-			}
-			for(g=0; g<G; ++g){
-				// Write gene names
-				fprintf(out_gene,"%s\n",gene_names[g].c_str());
-
-				//print best fit to file : mu, delta
-				// Print diagonal of invM : variance of mu, delta
-				fprintf(out_mu,"%lf\n",mu[g]);
-				fprintf(out_dmu,"%lf\n",sqrt(var_mu[g]));
-				fprintf(out_var_gene,"%lf\n",var_gene[g]);
-				for(c=0;c<C-1;++c){
-					fprintf(out_delta,"%lf\t",delta[g][c]);
-					fprintf(out_ddelta,"%lf\t",sqrt(var_delta[g][c]));
-				}
-				fprintf(out_delta,"%lf\n",delta[g][C-1]);
-				fprintf(out_ddelta,"%lf\n",sqrt(var_delta[g][C-1]));
-			}
-			fclose(out_gene);
-			fclose(out_cell);
-			fclose(out_mu);
-			fclose(out_dmu);
-			fclose(out_var_gene);
-			fclose(out_delta);
-			fclose(out_ddelta);
-
-			// Write likelihood
-			ofstream out_lik;
-			out_lik.open(out_folder + "likelihood.txt",ios::out);
-			// write v values of bins in loglikelihood
-			out_lik << "Variance\t";
-			for(k=0;k<(numbin-1);++k){
-				v = vmin*exp(deltav*k);
-				out_lik << v << "\t";
-			}
-			v = vmin*exp(deltav*(numbin-1));
-			out_lik << v << "\n";
-			for(g=0; g<G; ++g){
-				out_lik << gene_names[g] << "\t";
-				for(k=0;k<numbin;++k){
-					if(k<numbin-1){
-						out_lik << lik[g][k] << "\t";
-					}else{
-						out_lik << lik[g][k] << "\n";
-					}
-				}
-			}
-			out_lik.close();
-		}
-	}
+	// cerr << std::setprecision(3);
+	// cerr << "Estimated memory usage: ";
+	// if ( usage_bytes > 1e9 ){
+	// 	cerr << usage_bytes/1e9 << " GB\n";
+	// }else if ( usage_bytes > 1e6 ){
+	// 	cerr << usage_bytes/1e6 << " MB\n";
+	// }else{
+	// 	cerr << usage_bytes/1e3 << " KB\n";
+	// }
+	// cerr << std::setprecision(10);
+	// cout << std::setprecision(10);
+    // // Declare output variables
+	// double *mu = new double [G];
+	// double *var_mu = new double [G];
+	// double *var_gene = new double [G];
 	
-	// Repeat very similar output code for when you want to output the results for max posterior v_g
-	if (max_v_output){
-		ofstream out_exp_lev_v_ml, out_d_exp_lev_v_ml;
-		out_exp_lev_v_ml.open(out_folder + "log_transcription_quotients_vmax.txt",ios::out);
-		out_d_exp_lev_v_ml.open(out_folder + "ltq_error_bars_vmax.txt",ios::out);
+	// double **delta = nullptr;
+	// double **var_delta = nullptr;
+	// cerr << "I'm here 1" << endl;
+	// if (post_v_output){
+	// 	delta = new double *[G];
+	// 	var_delta = new double *[G];
+	// 	for( g=0; g<G; ++g){
+	// 		delta[g] = new double [C];
+	// 		var_delta[g] = new double [C];
+	// 	}
+	// }
+	// cerr << "I'm here 2" << endl;
 
-		out_exp_lev_v_ml << "GeneID";
-		out_d_exp_lev_v_ml << "GeneID";
-		for(c=0;c<C;c++){
-			out_exp_lev_v_ml << "\t" << cell_names[c].c_str();
-			out_d_exp_lev_v_ml << "\t" << cell_names[c].c_str();
-		}
-		out_exp_lev_v_ml << "\n";
-		out_d_exp_lev_v_ml << "\n";
+	// double v;
+	// double deltav = log(vmax/vmin)/((double) numbin-1);
+	// double **lik = new double *[G];
+	// for(g=0;g<G;g++){
+	// 	lik[g] = new double [numbin];
+	// 	for(k=0;k<numbin;k++)
+	// 		lik[g][k] = -1.0;
+	// }
+	// cerr << "I'm here 3" << endl;
 
-		for(g=0;g<G;g++){
-		out_exp_lev_v_ml << gene_names[g].c_str();
-		out_d_exp_lev_v_ml << gene_names[g].c_str();
-			for(c=0;c<C;c++){
-				out_exp_lev_v_ml << "\t" << mu_v_ml[g] + delta_v_ml[g][c];
-				out_d_exp_lev_v_ml << "\t" << sqrt( var_mu_v_ml[g] + var_delta_v_ml[g][c] );
-			}
-			if ( g != G-1 ){
-				out_exp_lev_v_ml << "\n";
-				out_d_exp_lev_v_ml << "\n";
-			}
-		}
-		out_exp_lev_v_ml.close();
-		out_d_exp_lev_v_ml.close();
+	// // Declare output variables for when we want to store results for maximum likelihood estimate for v_g
+	// double *var_gene_v_ml = nullptr;
+	// double *mu_v_ml = nullptr;
+	// double *var_mu_v_ml = nullptr;
+	// double **delta_v_ml = nullptr;
+	// double **var_delta_v_ml = nullptr;
+	// if (max_v_output){
+	// 	var_gene_v_ml = new double [G];
+	// 	mu_v_ml = new double [G];
+	// 	var_mu_v_ml = new double [G];
+	// 	delta_v_ml = new double *[G];
+	// 	var_delta_v_ml = new double *[G];
+	// 	for( g=0; g<G; ++g){
+	// 		delta_v_ml[g] = new double [C];
+	// 		var_delta_v_ml[g] = new double [C];
+	// 	}
+	// }
+	// cerr << "I'm here 4" << endl;
+	// double* row_delta = nullptr;
+	// double* row_var_delta = nullptr;
+	// double* row_delta_v_ml = nullptr;
+	// double* row_var_delta_v_ml = nullptr;
 
-		if ( print_extended_output ){
-			cerr << "Print extended output\n";
-			string my_file;
-			FILE *out_gene, *out_cell;
-			FILE *out_mu_v_ml, *out_dmu_v_ml, *out_var_gene_v_ml, *out_delta_v_ml, *out_ddelta_v_ml;
-			if(!post_v_output){
-				my_file = out_folder + "geneID.txt";
-				out_gene = (FILE *) fopen(my_file.c_str(),"w");
-				if(out_gene == NULL){
-					fprintf(stderr,"Cannot open output file %s\n",my_file.c_str());
-					exit(EXIT_FAILURE);
-				}
+	// // Estimate running time:
+	// int N_est = 10;
+	// if ( N_est < G ){
+	// 	// start timer
+	// 	clock_t begin = clock();
+	// 	cerr << "I'm here 5" << endl;
+	// 	// run on N_est genes
+	// 	for(g=0;g<N_est;++g){
+	// 		if (post_v_output){
+	// 			row_delta = delta[g];
+	// 			row_var_delta = var_delta[g];
+	// 		}
+	// 		if (max_v_output){
+	// 			row_delta_v_ml = delta_v_ml[g];
+	// 			row_var_delta_v_ml = var_delta_v_ml[g];
+	// 		}
+	// 		cerr << "g, n_c[g][2]: " << g << ", " << n_c[g][2] << endl;
+	// 		get_gene_expression_level(n_c[g],N_c,n[g],vmin,vmax,mu[g],var_mu[g],row_delta,row_var_delta,C,numbin,a,b,lik[g], var_gene_v_ml[g], mu_v_ml[g], var_mu_v_ml[g], row_delta_v_ml, row_var_delta_v_ml);
+	// 	}
 
-				my_file = out_folder + "cellID.txt";
-				out_cell = (FILE *) fopen(my_file.c_str(),"w");
-				if(out_cell == NULL){
-					fprintf(stderr,"Cannot open output file %s\n",my_file.c_str());
-					exit(EXIT_FAILURE);
-				}
-			}
-			my_file = out_folder + "mu_vmax.txt";
-			out_mu_v_ml = (FILE *) fopen(my_file.c_str(),"w");
-			if(out_mu_v_ml == NULL){
-				fprintf(stderr,"Cannot open output file %s\n",my_file.c_str());
-				exit(EXIT_FAILURE);
-			}
+	// 	// stop timer
+	// 	clock_t end = clock();
+	// 	double elapsed_secs = double(end - begin) / CLOCKS_PER_SEC;
+	// 	double estimated_running_time = elapsed_secs/N_est*(G-N_est)/N_threads;
 
-			my_file = out_folder + "d_mu_vmax.txt";
-			out_dmu_v_ml = (FILE *) fopen(my_file.c_str(),"w");
-			if(out_dmu_v_ml == NULL){
-				fprintf(stderr,"Cannot open output file %s\n",my_file.c_str());
-				exit(EXIT_FAILURE);
-			}
+	// 	// output esimated running time
+	// 	cerr << "Estimated running time: ";
+	// 	if ( estimated_running_time > 86400 ){
+	// 		cerr << estimated_running_time/(3600*24) << " days ";
+	// 	}else if ( estimated_running_time > 3600 ){
+	// 		cerr << estimated_running_time/3600 << " hours ";
+	// 	}else if ( estimated_running_time > 60 ){
+	// 		cerr << estimated_running_time/60 << " minutes ";
+	// 	}else{
+	// 		cerr << estimated_running_time << " seconds ";
+	// 	}
+	// 	cerr << "(Excluding reading/writing operations.)\n";
+    //     }else{
+	// 	N_est = 0;
+	// }
+	// cerr << std::setprecision(6);
+	// cout << std::setprecision(6);
 
-			my_file = out_folder + "variance_vmax.txt";
-			out_var_gene_v_ml = (FILE *) fopen(my_file.c_str(),"w");
-			if(out_var_gene_v_ml == NULL){
-				fprintf(stderr,"Cannot open output file %s\n",my_file.c_str());
-				exit(EXIT_FAILURE);
-			}
+   	// // Get Loglikelihood :
+	// cerr << "Fit gene expression levels\n";
+	// int g_print(G/(N_threads*40));
+    // #pragma omp parallel for num_threads(N_threads)
+	// for(g=N_est;g<G;++g){
+	// 	if (g == g_print){
+	// 		fprintf(stderr, "First process now fitting gene %d out of %d.\n", g, (int) G/N_threads);
+	// 		g_print *= 2;
+	// 	}
 
-			my_file = out_folder + "delta_vmax.txt";
-			out_delta_v_ml = (FILE *) fopen(my_file.c_str(),"w");
-			if(out_delta_v_ml == NULL){
-				fprintf(stderr,"Cannot open output file %s\n",my_file.c_str());
-				exit(EXIT_FAILURE);
-			}
+	// 	if (post_v_output){
+	// 		row_delta = delta[g];
+	// 		row_var_delta = var_delta[g];
+	// 	}
+	// 	if (max_v_output){
+	// 		row_delta_v_ml = delta_v_ml[g];
+	// 		row_var_delta_v_ml = var_delta_v_ml[g];
+	// 	}
+	// 	get_gene_expression_level(n_c[g],N_c,n[g],vmin,vmax,mu[g],var_mu[g],row_delta,row_var_delta,C,numbin,a,b,lik[g], var_gene_v_ml[g], mu_v_ml[g], var_mu_v_ml[g], row_delta_v_ml, row_var_delta_v_ml);
+	// }
 
-			my_file = out_folder + "d_delta_vmax.txt";
-			out_ddelta_v_ml = (FILE *) fopen(my_file.c_str(),"w");
-			if(out_ddelta_v_ml == NULL){
-				fprintf(stderr,"Cannot open output file %s\n",my_file.c_str());
-				exit(EXIT_FAILURE);
-			}
+	// // Create subfolder if results need to be stored that take the maximum posterior value for v_g
+	// // string out_subfolder = "";
+	// // if (max_v_output){
+	// // 	out_subfolder = out_folder + "/using_max_posterior_v_g/";
+	// // 	#ifdef _WIN32
+	// // 		_mkdir(out_subfolder.c_str());  // Use _mkdir on Windows
+	// // 	#else
+	// // 		mkdir(out_subfolder.c_str(), 0777);  // Use mkdir on Unix-like systems with full permissions
+	// // 	#endif
+	// // }
+
+	// // Write output files
+
+	// cerr << "Print output\n";
+	// // Write log expression table and error bars table
+	// if (post_v_output){
+	// 	ofstream out_exp_lev, out_d_exp_lev, out_exp_lev_v_ml, out_d_exp_lev_v_ml;
+	// 	out_exp_lev.open(out_folder + "log_transcription_quotients.txt",ios::out);
+	// 	out_d_exp_lev.open(out_folder + "ltq_error_bars.txt",ios::out);
+
+	// 	out_exp_lev << "GeneID";
+	// 	out_d_exp_lev << "GeneID";
+	// 	for(c=0;c<C;c++){
+	// 		out_exp_lev << "\t" << cell_names[c].c_str();
+	// 		out_d_exp_lev << "\t" << cell_names[c].c_str();
+	// 	}
+	// 	out_exp_lev << "\n";
+	// 	out_d_exp_lev << "\n";
+
+	// 	for(g=0;g<G;g++){
+	// 	out_exp_lev << gene_names[g].c_str();
+	// 	out_d_exp_lev << gene_names[g].c_str();
+	// 		for(c=0;c<C;c++){
+	// 			out_exp_lev << "\t" << mu[g] + delta[g][c];
+	// 			out_d_exp_lev << "\t" << sqrt( var_mu[g] + var_delta[g][c] );
+	// 		}
+	// 		if ( g != G-1 ){
+	// 			out_exp_lev << "\n";
+	// 			out_d_exp_lev << "\n";
+	// 		}
+	// 	}
+	// 	out_exp_lev.close();
+	// 	out_d_exp_lev.close();
+
+	// 	if ( print_extended_output ){
+
+	// 		// Compute variance : \int v*p(v) dv
+	// 		for(g=0; g<G; ++g){
+	// 			var_gene[g] = 0.0;
+	// 			for(k=0;k<numbin;++k){
+	// 				v = vmin * exp(deltav*k);
+	// 				var_gene[g] += v*lik[g][k];
+	// 			}
+	// 		}
+
+	// 		cerr << "Print extended output\n";
+	// 		string my_file;
+	// 		FILE *out_gene, *out_cell, *out_mu, *out_dmu, *out_var_gene, *out_delta, *out_ddelta;
+	// 		// output files
+	// 		my_file = out_folder + "geneID.txt";
+	// 		out_gene = (FILE *) fopen(my_file.c_str(),"w");
+	// 		if(out_gene == NULL){
+	// 			fprintf(stderr,"Cannot open output file %s\n",my_file.c_str());
+	// 			exit(EXIT_FAILURE);
+	// 		}
+
+	// 		my_file = out_folder + "cellID.txt";
+	// 		out_cell = (FILE *) fopen(my_file.c_str(),"w");
+	// 		if(out_cell == NULL){
+	// 			fprintf(stderr,"Cannot open output file %s\n",my_file.c_str());
+	// 			exit(EXIT_FAILURE);
+	// 		}
+
+	// 		my_file = out_folder + "mu.txt";
+	// 		out_mu = (FILE *) fopen(my_file.c_str(),"w");
+	// 		if(out_mu == NULL){
+	// 			fprintf(stderr,"Cannot open output file %s\n",my_file.c_str());
+	// 			exit(EXIT_FAILURE);
+	// 		}
+
+	// 		my_file = out_folder + "d_mu.txt";
+	// 		out_dmu = (FILE *) fopen(my_file.c_str(),"w");
+	// 		if(out_dmu == NULL){
+	// 			fprintf(stderr,"Cannot open output file %s\n",my_file.c_str());
+	// 			exit(EXIT_FAILURE);
+	// 		}
+
+	// 		my_file = out_folder + "variance.txt";
+	// 		out_var_gene = (FILE *) fopen(my_file.c_str(),"w");
+	// 		if(out_var_gene == NULL){
+	// 			fprintf(stderr,"Cannot open output file %s\n",my_file.c_str());
+	// 			exit(EXIT_FAILURE);
+	// 		}
+
+	// 		my_file = out_folder + "delta.txt";
+	// 		out_delta = (FILE *) fopen(my_file.c_str(),"w");
+	// 		if(out_delta == NULL){
+	// 			fprintf(stderr,"Cannot open output file %s\n",my_file.c_str());
+	// 			exit(EXIT_FAILURE);
+	// 		}
+
+	// 		my_file = out_folder + "d_delta.txt";
+	// 		out_ddelta = (FILE *) fopen(my_file.c_str(),"w");
+	// 		if(out_ddelta == NULL){
+	// 			fprintf(stderr,"Cannot open output file %s\n",my_file.c_str());
+	// 			exit(EXIT_FAILURE);
+	// 		}
+
+	// 		// output cell name
+	// 		for(c=0;c<C;c++){
+	// 			fprintf(out_cell,"%s\n",cell_names[c].c_str());
+	// 		}
+	// 		for(g=0; g<G; ++g){
+	// 			// Write gene names
+	// 			fprintf(out_gene,"%s\n",gene_names[g].c_str());
+
+	// 			//print best fit to file : mu, delta
+	// 			// Print diagonal of invM : variance of mu, delta
+	// 			fprintf(out_mu,"%lf\n",mu[g]);
+	// 			fprintf(out_dmu,"%lf\n",sqrt(var_mu[g]));
+	// 			fprintf(out_var_gene,"%lf\n",var_gene[g]);
+	// 			for(c=0;c<C-1;++c){
+	// 				fprintf(out_delta,"%lf\t",delta[g][c]);
+	// 				fprintf(out_ddelta,"%lf\t",sqrt(var_delta[g][c]));
+	// 			}
+	// 			fprintf(out_delta,"%lf\n",delta[g][C-1]);
+	// 			fprintf(out_ddelta,"%lf\n",sqrt(var_delta[g][C-1]));
+	// 		}
+	// 		fclose(out_gene);
+	// 		fclose(out_cell);
+	// 		fclose(out_mu);
+	// 		fclose(out_dmu);
+	// 		fclose(out_var_gene);
+	// 		fclose(out_delta);
+	// 		fclose(out_ddelta);
+
+	// 		// Write likelihood
+	// 		ofstream out_lik;
+	// 		out_lik.open(out_folder + "likelihood.txt",ios::out);
+	// 		// write v values of bins in loglikelihood
+	// 		out_lik << "Variance\t";
+	// 		for(k=0;k<(numbin-1);++k){
+	// 			v = vmin*exp(deltav*k);
+	// 			out_lik << v << "\t";
+	// 		}
+	// 		v = vmin*exp(deltav*(numbin-1));
+	// 		out_lik << v << "\n";
+	// 		for(g=0; g<G; ++g){
+	// 			out_lik << gene_names[g] << "\t";
+	// 			for(k=0;k<numbin;++k){
+	// 				if(k<numbin-1){
+	// 					out_lik << lik[g][k] << "\t";
+	// 				}else{
+	// 					out_lik << lik[g][k] << "\n";
+	// 				}
+	// 			}
+	// 		}
+	// 		out_lik.close();
+	// 	}
+	// }
+	
+	// // Repeat very similar output code for when you want to output the results for max posterior v_g
+	// if (max_v_output){
+	// 	ofstream out_exp_lev_v_ml, out_d_exp_lev_v_ml;
+	// 	out_exp_lev_v_ml.open(out_folder + "log_transcription_quotients_vmax.txt",ios::out);
+	// 	out_d_exp_lev_v_ml.open(out_folder + "ltq_error_bars_vmax.txt",ios::out);
+
+	// 	out_exp_lev_v_ml << "GeneID";
+	// 	out_d_exp_lev_v_ml << "GeneID";
+	// 	for(c=0;c<C;c++){
+	// 		out_exp_lev_v_ml << "\t" << cell_names[c].c_str();
+	// 		out_d_exp_lev_v_ml << "\t" << cell_names[c].c_str();
+	// 	}
+	// 	out_exp_lev_v_ml << "\n";
+	// 	out_d_exp_lev_v_ml << "\n";
+
+	// 	for(g=0;g<G;g++){
+	// 	out_exp_lev_v_ml << gene_names[g].c_str();
+	// 	out_d_exp_lev_v_ml << gene_names[g].c_str();
+	// 		for(c=0;c<C;c++){
+	// 			out_exp_lev_v_ml << "\t" << mu_v_ml[g] + delta_v_ml[g][c];
+	// 			out_d_exp_lev_v_ml << "\t" << sqrt( var_mu_v_ml[g] + var_delta_v_ml[g][c] );
+	// 		}
+	// 		if ( g != G-1 ){
+	// 			out_exp_lev_v_ml << "\n";
+	// 			out_d_exp_lev_v_ml << "\n";
+	// 		}
+	// 	}
+	// 	out_exp_lev_v_ml.close();
+	// 	out_d_exp_lev_v_ml.close();
+
+	// 	if ( print_extended_output ){
+	// 		cerr << "Print extended output\n";
+	// 		string my_file;
+	// 		FILE *out_gene, *out_cell;
+	// 		FILE *out_mu_v_ml, *out_dmu_v_ml, *out_var_gene_v_ml, *out_delta_v_ml, *out_ddelta_v_ml;
+	// 		if(!post_v_output){
+	// 			my_file = out_folder + "geneID.txt";
+	// 			out_gene = (FILE *) fopen(my_file.c_str(),"w");
+	// 			if(out_gene == NULL){
+	// 				fprintf(stderr,"Cannot open output file %s\n",my_file.c_str());
+	// 				exit(EXIT_FAILURE);
+	// 			}
+
+	// 			my_file = out_folder + "cellID.txt";
+	// 			out_cell = (FILE *) fopen(my_file.c_str(),"w");
+	// 			if(out_cell == NULL){
+	// 				fprintf(stderr,"Cannot open output file %s\n",my_file.c_str());
+	// 				exit(EXIT_FAILURE);
+	// 			}
+	// 		}
+	// 		my_file = out_folder + "mu_vmax.txt";
+	// 		out_mu_v_ml = (FILE *) fopen(my_file.c_str(),"w");
+	// 		if(out_mu_v_ml == NULL){
+	// 			fprintf(stderr,"Cannot open output file %s\n",my_file.c_str());
+	// 			exit(EXIT_FAILURE);
+	// 		}
+
+	// 		my_file = out_folder + "d_mu_vmax.txt";
+	// 		out_dmu_v_ml = (FILE *) fopen(my_file.c_str(),"w");
+	// 		if(out_dmu_v_ml == NULL){
+	// 			fprintf(stderr,"Cannot open output file %s\n",my_file.c_str());
+	// 			exit(EXIT_FAILURE);
+	// 		}
+
+	// 		my_file = out_folder + "variance_vmax.txt";
+	// 		out_var_gene_v_ml = (FILE *) fopen(my_file.c_str(),"w");
+	// 		if(out_var_gene_v_ml == NULL){
+	// 			fprintf(stderr,"Cannot open output file %s\n",my_file.c_str());
+	// 			exit(EXIT_FAILURE);
+	// 		}
+
+	// 		my_file = out_folder + "delta_vmax.txt";
+	// 		out_delta_v_ml = (FILE *) fopen(my_file.c_str(),"w");
+	// 		if(out_delta_v_ml == NULL){
+	// 			fprintf(stderr,"Cannot open output file %s\n",my_file.c_str());
+	// 			exit(EXIT_FAILURE);
+	// 		}
+
+	// 		my_file = out_folder + "d_delta_vmax.txt";
+	// 		out_ddelta_v_ml = (FILE *) fopen(my_file.c_str(),"w");
+	// 		if(out_ddelta_v_ml == NULL){
+	// 			fprintf(stderr,"Cannot open output file %s\n",my_file.c_str());
+	// 			exit(EXIT_FAILURE);
+	// 		}
 
 
-			for(c=0;c<C;c++){
-				fprintf(out_cell,"%s\n",cell_names[c].c_str());
-			}
-			for(g=0; g<G; ++g){
-				// Write gene names
-				fprintf(out_gene,"%s\n",gene_names[g].c_str());
-				//print best fit to file : mu, delta
-				// Print diagonal of invM : variance of mu, delta
-				fprintf(out_mu_v_ml,"%lf\n",mu_v_ml[g]);
-				fprintf(out_dmu_v_ml,"%lf\n",sqrt(var_mu_v_ml[g]));
-				fprintf(out_var_gene_v_ml,"%lf\n",var_gene_v_ml[g]);
-				for(c=0;c<C-1;++c){
-					fprintf(out_delta_v_ml,"%lf\t",delta_v_ml[g][c]);
-					fprintf(out_ddelta_v_ml,"%lf\t",sqrt(var_delta_v_ml[g][c]));
-				}
-				fprintf(out_delta_v_ml,"%lf\n",delta_v_ml[g][C-1]);
-				fprintf(out_ddelta_v_ml,"%lf\n", sqrt(var_delta_v_ml[g][C-1]));
-			}
-			fclose(out_mu_v_ml);
-			fclose(out_dmu_v_ml);
-			fclose(out_var_gene_v_ml);
-			fclose(out_delta_v_ml);
-			fclose(out_ddelta_v_ml);
-		}
-	}
+	// 		for(c=0;c<C;c++){
+	// 			fprintf(out_cell,"%s\n",cell_names[c].c_str());
+	// 		}
+	// 		for(g=0; g<G; ++g){
+	// 			// Write gene names
+	// 			fprintf(out_gene,"%s\n",gene_names[g].c_str());
+	// 			//print best fit to file : mu, delta
+	// 			// Print diagonal of invM : variance of mu, delta
+	// 			fprintf(out_mu_v_ml,"%lf\n",mu_v_ml[g]);
+	// 			fprintf(out_dmu_v_ml,"%lf\n",sqrt(var_mu_v_ml[g]));
+	// 			fprintf(out_var_gene_v_ml,"%lf\n",var_gene_v_ml[g]);
+	// 			for(c=0;c<C-1;++c){
+	// 				fprintf(out_delta_v_ml,"%lf\t",delta_v_ml[g][c]);
+	// 				fprintf(out_ddelta_v_ml,"%lf\t",sqrt(var_delta_v_ml[g][c]));
+	// 			}
+	// 			fprintf(out_delta_v_ml,"%lf\n",delta_v_ml[g][C-1]);
+	// 			fprintf(out_ddelta_v_ml,"%lf\n", sqrt(var_delta_v_ml[g][C-1]));
+	// 		}
+	// 		fclose(out_mu_v_ml);
+	// 		fclose(out_dmu_v_ml);
+	// 		fclose(out_var_gene_v_ml);
+	// 		fclose(out_delta_v_ml);
+	// 		fclose(out_ddelta_v_ml);
+	// 	}
+	// }
 
     return 0;
 }
