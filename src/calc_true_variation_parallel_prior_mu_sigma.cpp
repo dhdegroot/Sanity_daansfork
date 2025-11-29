@@ -813,7 +813,7 @@ void parse_argv(int argc,char** argv, string &in_file, string &gene_name_file, s
                          << argv[i] << " option missing\n";
                     show_usage();
                 }
-				cerr << "j, to_find[j], i, argv[i], idx: " << j <<", " << to_find[j][0] << to_find[j][1] <<", " << i <<", " << argv[i] <<", " << idx << endl;
+				cerr << "j, to_find[j], i, argv[i], idx, argv[idx+1]: " << j <<", " << to_find[j][0] << to_find[j][1] <<", " << i <<", " << argv[i] <<", " << idx << ", " << argv[idx+1] << endl;
 				if(j==0) {in_file = argv[idx+1];idx=0;}
 				if(j==1) {out_folder = argv[idx+1];idx=0;}
 				if(j==2) {N_threads = atoi(argv[idx+1]);idx=0;}
