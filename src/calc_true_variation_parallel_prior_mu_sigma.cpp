@@ -816,23 +816,24 @@ void parse_argv(int argc,char** argv, string &in_file, string &gene_name_file, s
                     show_usage();
                 }
 				cerr << "j, to_find[j], i, argv[i], idx, argv[idx+1]: " << j <<", " << to_find[j][0] << to_find[j][1] <<", " << i <<", " << argv[i] <<", " << idx << ", " << argv[idx+1] << endl;
-				if(j==0) {in_file = argv[idx+1];idx=0;}
-				if(j==1) {out_folder = argv[idx+1];idx=0;}
-				if(j==2) {N_threads = atoi(argv[idx+1]);idx=0;}
-				if(j==3) {extended_output = argv[idx+1];idx=0;}
-				if(j==4) {vmin = atof(argv[idx+1]);idx=0;}
-				if(j==5) {vmax = atof(argv[idx+1]);idx=0;}
-				if(j==6) {numbin = atoi(argv[idx+1]);idx=0;}
-				if(j==7) {gene_name_file = argv[idx+1];idx=0;}
-				if(j==8) {cell_name_file = argv[idx+1];idx=0;}
-				if(j==9) {no_norm_str = argv[idx+1];idx=0;}
-				if(j==10) {max_v_str = argv[idx+1];idx=0;}
+				if(j==0) {in_file = argv[idx+1];}
+				if(j==1) {out_folder = argv[idx+1];}
+				if(j==2) {N_threads = atoi(argv[idx+1]);}
+				if(j==3) {extended_output = argv[idx+1];}
+				if(j==4) {vmin = atof(argv[idx+1]);}
+				if(j==5) {vmax = atof(argv[idx+1]);}
+				if(j==6) {numbin = atoi(argv[idx+1]);}
+				if(j==7) {gene_name_file = argv[idx+1];}
+				if(j==8) {cell_name_file = argv[idx+1];}
+				if(j==9) {no_norm_str = argv[idx+1];}
+				if(j==10) {max_v_str = argv[idx+1];}
 				// add '/' to out_folder if not already
 				if( j == 1 && out_folder.back() != '/' ){
 					cerr << out_folder << endl;
 					out_folder = out_folder + '/';
 					cerr << out_folder << endl;
 				}
+				idx = 0;
             }
         }
 		if (idx == 0 && j == 0){
