@@ -829,11 +829,11 @@ void parse_argv(int argc,char** argv, string &in_file, string &gene_name_file, s
 					out_folder = out_folder + '/';
             }
         }
-		if (idx == 0 && j == 0){
-        	cerr << "Error in argument parsing :\n"
-            << "missing input file name\n";
-			show_usage();
-        }
+		// if (idx == 0 && j == 0){
+        // 	cerr << "Error in argument parsing :\n"
+        //     << "missing input file name\n";
+		// 	show_usage();
+        // }
     }
 
 	// if ( extended_output == "true" || extended_output == "1" )
