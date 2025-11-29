@@ -77,9 +77,11 @@ int main (int argc, char** argv){
 	// Gene and cell names
 	string *gene_names = new string [G];
 	string *cell_names = new string [C];
+    cerr << "Just after initializing: n_c[0][2]: " << n_c[0][2] << endl;
 
 	// Read input file
 	if (in_file_extension == "mtx"){
+		cerr << "Before going into ReadMTX: n_c[0][2]: " << n_c[0][2] << endl;
 		ReadMTX(in_file, gene_name_file, cell_name_file, n_c, N_c, n, gene_names, cell_names, N_rows, G, C, gene_idx);
 	} else {
 		ReadUMIcountMatrix(in_file, n_c, N_c, n, gene_names, cell_names, N_rows, G, C, N_char);

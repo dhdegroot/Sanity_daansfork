@@ -236,6 +236,7 @@ void Get_G_C_MTX(string in_file, int &N_rows, int &G, int &C, map<int,int> &gene
 }
 
 void ReadMTX(string mtx_file, string gene_name_file, string cell_name_file, double **n_c, double *N_c, double *n, string *gene_names, string *cell_names, int N_rows, int G, int C, map<int,int> gene_idx){
+	cerr << "When in ReadMTX: n_c[0][2]: " << n_c[0][2] << endl;
 
 	// declare variables
     FILE * infp;
