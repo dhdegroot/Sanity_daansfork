@@ -823,7 +823,7 @@ void parse_argv(int argc,char** argv, string &in_file, string &gene_name_file, s
 				if(j==7) gene_name_file = argv[idx+1];
 				if(j==8) cell_name_file = argv[idx+1];
 				if(j==9) no_norm_str = argv[idx+1];
-				// if(j==10) max_v_str = argv[idx+1];
+				if(j==10) max_v_str = argv[idx+1];
 				// // add '/' to out_folder if not already
 				// if( j == 1 && out_folder.back() != '/' )
 				// 	out_folder = out_folder + '/';
