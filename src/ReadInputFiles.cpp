@@ -324,23 +324,30 @@ void ReadMTX(string mtx_file, string gene_name_file, string cell_name_file, doub
     while ( (retval = fgets(ss,1024,infp) ) != NULL) {
 		// Read values gene idx and add as expressed
 		token = strtok(retval," ");
-        cerr << token << endl;
+        // cerr << token << endl;
 		g = stoi(token);
 		token = strtok(NULL," ");
 		c = stoi(token);
 		token = strtok(NULL," ");
 		count = stod(token);
 
-        cerr << "g, c, count: " << g << ", " << c << ", " << count << endl;
-
+        // cerr << "g, c, count: " << g << ", " << c << ", " << count << endl;
+        if (gene_idx[g-1] == 0){
+            cerr << "g, c, count: " << g-1 << ", " << c-1 << ", " << count << endl;
+        }
 		g = g-1;
 		c = c-1;
 		// fill in the count matrix
 		n_c[gene_idx[g]][c] = count;
+        if (gene_idx[g] == 0){
+            cerr << "2 g, c, count: " << g << ", " << c << ", " << count << endl;
+        }
 		n[gene_idx[g]] += count;
 		N_c[c] += count;
     }
     fclose(infp);
+    cerr << "n_c[0][2]: " << n_c[0][2] << endl;
+    exit(0);
 
 	return;
 }
