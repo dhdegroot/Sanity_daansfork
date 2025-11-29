@@ -22,8 +22,12 @@ double fitfrac(double *f, double *n_c, double n, double &v, int C, double *N_c, 
 
     /**** get initial nor ****/
     cerr << "I'm here 10a3 " << endl;
+    cerr << "Q, C, q, b: " << Q[0] << ", " << C << ", " << q << ", " << b << ", " << endl;
     nor = beta*normalization(Q,C,q)+b*exp(-q);
+    cerr << "nor, beta*normalization: " << nor << ", " << beta*normalization(Q,C,q) << endl;
+
     cerr << "I'm here 10c1 " << nor << endl;
+    exit(0);
     /**** initial c too small. Set as lower bound and increase by factor 2 until a value too large is found****/
     normin = nor;
     normax = nor;
@@ -73,7 +77,7 @@ double fitfrac(double *f, double *n_c, double n, double &v, int C, double *N_c, 
             normax = nor;
         }
         diff = fabs(nor-1.0);
-        // if (counter >=3){exit(0);}
+        if (counter >=3){exit(0);}
     }
     cerr << "I'm here 10a4 " << endl;
 
@@ -108,6 +112,10 @@ double normalization(double *Q,int C,double q){
         }else{
             //nor += gsl_sf_lambert_W0(exp(x));
 			nor += Fukushima::LambertW(0,exp(x));
+        }
+        if (nor > 10000){
+            cerr << "i, nor: " << i << ", " << nor << endl;
+            exit(0);
         }
     }
     return nor;
