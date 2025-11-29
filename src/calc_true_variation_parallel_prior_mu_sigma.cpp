@@ -78,7 +78,8 @@ int main (int argc, char** argv){
 		n[g] = 0;
 	}
 	cerr << "Just after initializing: n_c[0][2]: " << n_c[0][2] << endl;
-
+	exit(0);
+	
 	// Gene and cell names
 	string *gene_names = new string [G];
 	string *cell_names = new string [C];
