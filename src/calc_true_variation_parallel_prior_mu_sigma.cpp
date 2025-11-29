@@ -833,7 +833,6 @@ void parse_argv(int argc,char** argv, string &in_file, string &gene_name_file, s
 					out_folder = out_folder + '/';
 					cerr << out_folder << endl;
 				}
-				idx = 0;
             }
         }
 		if (idx == 0 && j == 0){
@@ -841,6 +840,7 @@ void parse_argv(int argc,char** argv, string &in_file, string &gene_name_file, s
             << "missing input file name\n";
 			show_usage();
         }
+		idx = 0;
     }
 
 	// if ( extended_output == "true" || extended_output == "1" )
