@@ -42,7 +42,7 @@ int main (int argc, char** argv){
 	bool no_norm(false);
 	bool max_v_output(false);
 	bool post_v_output(true);
-	parse_argv(argc, argv, in_file, gene_name_file, cell_name_file, in_file_extension, out_folder, N_threads, print_extended_output, vmin, vmax, numbin, N_char, no_norm, max_v_output, post_v_output);
+	// parse_argv(argc, argv, in_file, gene_name_file, cell_name_file, in_file_extension, out_folder, N_threads, print_extended_output, vmin, vmax, numbin, N_char, no_norm, max_v_output, post_v_output);
 
 	// count Number of genes and cells
 	int G, C;
