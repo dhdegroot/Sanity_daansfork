@@ -801,40 +801,40 @@ void parse_argv(int argc,char** argv, string &in_file, string &gene_name_file, s
 							{"-no_norm","--no_cell_size_normalization"},
 							{"-max_v","--get_output_for_maxlik_variance"}};
 
-    int j;
-    int idx;
-    for(j=0;j<N_param;j++){
-        idx = 0;
-        for(i=1;i<argc;i++){
-            if (argv[i] == to_find[j][0] || argv[i] == to_find[j][1]){
-				idx = i;
-                if ( idx+1 > argc-1 ){
-                    cerr << "Error in argument parsing :\n"
-                         << argv[i] << " option missing\n";
-                    show_usage();
-                }
-				if(j==0) in_file = argv[idx+1];
-				if(j==1) out_folder = argv[idx+1];
-				if(j==2) N_threads = atoi(argv[idx+1]);
-				if(j==3) extended_output = argv[idx+1];
-				if(j==4) vmin = atof(argv[idx+1]);
-				if(j==5) vmax = atof(argv[idx+1]);
-				if(j==6) numbin = atoi(argv[idx+1]);
-				if(j==7) gene_name_file = argv[idx+1];
-				if(j==8) cell_name_file = argv[idx+1];
-				if(j==9) no_norm_str = argv[idx+1];
-				if(j==10) max_v_str = argv[idx+1];
-				// add '/' to out_folder if not already
-				if( j == 1 && out_folder.back() != '/' )
-					out_folder = out_folder + '/';
-            }
-        }
-		if (idx == 0 && j == 0){
-        	cerr << "Error in argument parsing :\n"
-            << "missing input file name\n";
-			show_usage();
-        }
-    }
+    // int j;
+    // int idx;
+    // for(j=0;j<N_param;j++){
+    //     idx = 0;
+    //     for(i=1;i<argc;i++){
+    //         if (argv[i] == to_find[j][0] || argv[i] == to_find[j][1]){
+	// 			idx = i;
+    //             if ( idx+1 > argc-1 ){
+    //                 cerr << "Error in argument parsing :\n"
+    //                      << argv[i] << " option missing\n";
+    //                 show_usage();
+    //             }
+	// 			if(j==0) in_file = argv[idx+1];
+	// 			if(j==1) out_folder = argv[idx+1];
+	// 			if(j==2) N_threads = atoi(argv[idx+1]);
+	// 			if(j==3) extended_output = argv[idx+1];
+	// 			if(j==4) vmin = atof(argv[idx+1]);
+	// 			if(j==5) vmax = atof(argv[idx+1]);
+	// 			if(j==6) numbin = atoi(argv[idx+1]);
+	// 			if(j==7) gene_name_file = argv[idx+1];
+	// 			if(j==8) cell_name_file = argv[idx+1];
+	// 			if(j==9) no_norm_str = argv[idx+1];
+	// 			if(j==10) max_v_str = argv[idx+1];
+	// 			// add '/' to out_folder if not already
+	// 			if( j == 1 && out_folder.back() != '/' )
+	// 				out_folder = out_folder + '/';
+    //         }
+    //     }
+	// 	if (idx == 0 && j == 0){
+    //     	cerr << "Error in argument parsing :\n"
+    //         << "missing input file name\n";
+	// 		show_usage();
+    //     }
+    // }
 
 	// if ( extended_output == "true" || extended_output == "1" )
 	// 	print_extended_output = true;
