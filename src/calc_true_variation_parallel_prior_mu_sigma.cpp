@@ -838,13 +838,13 @@ void parse_argv(int argc,char** argv, string &in_file, string &gene_name_file, s
 				}
 
             }
-			if (idx == 0 && j == 0){
-				cerr << "Error in argument parsing :\n"
-				<< "missing input file name\n";
-				show_usage();
-			}
-			idx = 0;
 		}
+		if (idx == 0 && j == 0){
+			cerr << "Error in argument parsing :\n"
+			<< "missing input file name\n";
+			show_usage();
+		}
+		idx = 0;
     }
 
 	// if ( extended_output == "true" || extended_output == "1" )
