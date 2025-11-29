@@ -75,7 +75,8 @@ int main (int argc, char** argv){
 	// count per gene and per cell
     double **n_c = new double *[G];
     for(g=0;g<G;++g){
-        n_c[g] = new double [C];
+        // n_c[g] = new double [C];
+		n_c[g] = new double[C]();
 		n[g] = 0;
 	}
 	cerr << "Just after initializing: n_c[0][2]: " << n_c[0][2] << endl;
@@ -826,11 +827,11 @@ void parse_argv(int argc,char** argv, string &in_file, string &gene_name_file, s
 				if(j==9) {no_norm_str = argv[idx+1];idx=0;}
 				if(j==10) {max_v_str = argv[idx+1];idx=0;}
 				// add '/' to out_folder if not already
-				// if( j == 1 && out_folder.back() != '/' ){
-				// 	cerr << out_folder << endl;
-				// 	out_folder = out_folder + '/';
-				// 	cerr << out_folder << endl;
-				// }
+				if( j == 1 && out_folder.back() != '/' ){
+					cerr << out_folder << endl;
+					out_folder = out_folder + '/';
+					cerr << out_folder << endl;
+				}
             }
         }
 		// if (idx == 0 && j == 0){
