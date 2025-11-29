@@ -206,6 +206,7 @@ int main (int argc, char** argv){
 				row_delta_v_ml = delta_v_ml[g];
 				row_var_delta_v_ml = var_delta_v_ml[g];
 			}
+			cerr << "g, n_c[g][2]: " << g << ", " << n_c[g][2] << endl;
 			get_gene_expression_level(n_c[g],N_c,n[g],vmin,vmax,mu[g],var_mu[g],row_delta,row_var_delta,C,numbin,a,b,lik[g], var_gene_v_ml[g], mu_v_ml[g], var_mu_v_ml[g], row_delta_v_ml, row_var_delta_v_ml);
 		}
 
