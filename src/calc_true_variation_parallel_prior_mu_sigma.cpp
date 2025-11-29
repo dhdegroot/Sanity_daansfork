@@ -775,88 +775,88 @@ void parse_argv(int argc,char** argv, string &in_file, string &gene_name_file, s
         if (argv[i] == get_help[0] || argv[i] == get_help[1])
             show_usage();
     }
-	// string get_version [2];
-	// get_version[0] = "-v";
-    // get_version[1] = "--version";
-	// for(i=1;i<argc;i++){
-	// 	if (argv[i] == get_version[0] || argv[i] == get_version[1]){
-	// 		cout << VERSION << "\n";
-	// 		exit(0);
-	// 	}
-	// }
+	string get_version [2];
+	get_version[0] = "-v";
+    get_version[1] = "--version";
+	for(i=1;i<argc;i++){
+		if (argv[i] == get_version[0] || argv[i] == get_version[1]){
+			cout << VERSION << "\n";
+			exit(0);
+		}
+	}
 
-	// int N_param(11);
-	// string extended_output("false");
-	// string no_norm_str("false");
-	// string max_v_str("true");
-    // string to_find[11][2] = {{"-f", "--file"},
-	// 						{"-d", "--destination"},
-	// 						{"-n", "--n_threads"},
-	// 						{"-e", "--extended_output"},
-    //      					{"-vmin", "--variance_min"},
-    //      					{"-vmax", "--variance_max"},
-	// 				    	{"-nbin", "--number_of_variance_bins"},
-	// 						{"-mtx_genes","--mtx_gene_name_file"},
-	// 						{"-mtx_cells","--mtx_cell_name_file"},
-	// 						{"-no_norm","--no_cell_size_normalization"},
-	// 						{"-max_v","--get_output_for_maxlik_variance"}};
+	int N_param(11);
+	string extended_output("false");
+	string no_norm_str("false");
+	string max_v_str("true");
+    string to_find[11][2] = {{"-f", "--file"},
+							{"-d", "--destination"},
+							{"-n", "--n_threads"},
+							{"-e", "--extended_output"},
+         					{"-vmin", "--variance_min"},
+         					{"-vmax", "--variance_max"},
+					    	{"-nbin", "--number_of_variance_bins"},
+							{"-mtx_genes","--mtx_gene_name_file"},
+							{"-mtx_cells","--mtx_cell_name_file"},
+							{"-no_norm","--no_cell_size_normalization"},
+							{"-max_v","--get_output_for_maxlik_variance"}};
 
-    // int j;
-    // int idx;
-    // for(j=0;j<N_param;j++){
-    //     idx = 0;
-    //     for(i=1;i<argc;i++){
-    //         if (argv[i] == to_find[j][0] || argv[i] == to_find[j][1]){
-	// 			idx = i;
-    //             if ( idx+1 > argc-1 ){
-    //                 cerr << "Error in argument parsing :\n"
-    //                      << argv[i] << " option missing\n";
-    //                 show_usage();
-    //             }
-	// 			if(j==0) in_file = argv[idx+1];
-	// 			if(j==1) out_folder = argv[idx+1];
-	// 			if(j==2) N_threads = atoi(argv[idx+1]);
-	// 			if(j==3) extended_output = argv[idx+1];
-	// 			if(j==4) vmin = atof(argv[idx+1]);
-	// 			if(j==5) vmax = atof(argv[idx+1]);
-	// 			if(j==6) numbin = atoi(argv[idx+1]);
-	// 			if(j==7) gene_name_file = argv[idx+1];
-	// 			if(j==8) cell_name_file = argv[idx+1];
-	// 			if(j==9) no_norm_str = argv[idx+1];
-	// 			if(j==10) max_v_str = argv[idx+1];
-	// 			// add '/' to out_folder if not already
-	// 			if( j == 1 && out_folder.back() != '/' )
-	// 				out_folder = out_folder + '/';
-    //         }
-    //     }
-	// 	if (idx == 0 && j == 0){
-    //     	cerr << "Error in argument parsing :\n"
-    //         << "missing input file name\n";
-	// 		show_usage();
-    //     }
-    // }
+    int j;
+    int idx;
+    for(j=0;j<N_param;j++){
+        idx = 0;
+        for(i=1;i<argc;i++){
+            if (argv[i] == to_find[j][0] || argv[i] == to_find[j][1]){
+				idx = i;
+                if ( idx+1 > argc-1 ){
+                    cerr << "Error in argument parsing :\n"
+                         << argv[i] << " option missing\n";
+                    show_usage();
+                }
+				if(j==0) in_file = argv[idx+1];
+				if(j==1) out_folder = argv[idx+1];
+				if(j==2) N_threads = atoi(argv[idx+1]);
+				if(j==3) extended_output = argv[idx+1];
+				if(j==4) vmin = atof(argv[idx+1]);
+				if(j==5) vmax = atof(argv[idx+1]);
+				if(j==6) numbin = atoi(argv[idx+1]);
+				if(j==7) gene_name_file = argv[idx+1];
+				if(j==8) cell_name_file = argv[idx+1];
+				if(j==9) no_norm_str = argv[idx+1];
+				if(j==10) max_v_str = argv[idx+1];
+				// add '/' to out_folder if not already
+				if( j == 1 && out_folder.back() != '/' )
+					out_folder = out_folder + '/';
+            }
+        }
+		if (idx == 0 && j == 0){
+        	cerr << "Error in argument parsing :\n"
+            << "missing input file name\n";
+			show_usage();
+        }
+    }
 
-	// if ( extended_output == "true" || extended_output == "1" )
-	// 	print_extended_output = true;
+	if ( extended_output == "true" || extended_output == "1" )
+		print_extended_output = true;
 
-	// if ( no_norm_str == "true" || no_norm_str == "1" )
-	// 	no_norm = true;
+	if ( no_norm_str == "true" || no_norm_str == "1" )
+		no_norm = true;
 	
-	// if ( max_v_str == "true" || max_v_str == "1" || max_v_str == "only_max_output"){
+	if ( max_v_str == "true" || max_v_str == "1" || max_v_str == "only_max_output"){
+		max_v_output = true;
+		post_v_output = false;
+		}
+	// else if (max_v_str == "only_max_output"){
 	// 	max_v_output = true;
 	// 	post_v_output = false;
 	// 	}
-	// // else if (max_v_str == "only_max_output"){
-	// // 	max_v_output = true;
-	// // 	post_v_output = false;
-	// // 	}
 
 
-	// // Get input file extension
-	// in_file_extension = in_file.substr(in_file.find(".")+1,in_file.length());
-	// cerr << "File type : " << in_file_extension << "\n";
+	// Get input file extension
+	in_file_extension = in_file.substr(in_file.find(".")+1,in_file.length());
+	cerr << "File type : " << in_file_extension << "\n";
 
-	// // Get number of Character in first row, for iobuffer
+	// Get number of Character in first row, for iobuffer
 	// string command = "head -1 " + in_file + "|wc -c>" + out_folder + "tmp";
 	// int out = system(command.c_str());
     // ifstream myfile (out_folder + "tmp");
