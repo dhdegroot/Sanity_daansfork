@@ -42,23 +42,26 @@ int main (int argc, char** argv){
 	bool no_norm(false);
 	bool max_v_output(false);
 	bool post_v_output(true);
-	parse_argv(argc, argv, in_file, gene_name_file, cell_name_file, in_file_extension, out_folder, N_threads, print_extended_output, vmin, vmax, numbin, N_char, no_norm, max_v_output, post_v_output);
+	// parse_argv(argc, argv, in_file, gene_name_file, cell_name_file, in_file_extension, out_folder, N_threads, print_extended_output, vmin, vmax, numbin, N_char, no_norm, max_v_output, post_v_output);
 
 	// count Number of genes and cells
 	int G, C;
 	// Number of rows in file
 	int N_rows;
-	// Gene idx map for mtx
+	// // Gene idx map for mtx
 	map<int,int> gene_idx;
 
-	if (in_file_extension == "mtx"){
-		Get_G_C_MTX(in_file, N_rows, G, C, gene_idx);
-		fprintf(stderr, "There were %d rows\n", N_rows);
-	} else {
-		Get_G_C_UMIcountMatrix(in_file, N_rows, G, C, N_char);
-		fprintf(stderr, "There were %d rows\n", N_rows);
-	}
-	fprintf(stderr, "There were %d genes and %d cells\n",G,C);
+	// if (in_file_extension == "mtx"){
+	// 	Get_G_C_MTX(in_file, N_rows, G, C, gene_idx);
+	// 	fprintf(stderr, "There were %d rows\n", N_rows);
+	// } else {
+	// 	Get_G_C_UMIcountMatrix(in_file, N_rows, G, C, N_char);
+	// 	fprintf(stderr, "There were %d rows\n", N_rows);
+	// }
+	// fprintf(stderr, "There were %d genes and %d cells\n",G,C);
+
+	G = 25281;
+	C = 21;
 
 	int g, c, k;
 	// Count per cell
@@ -67,9 +70,7 @@ int main (int argc, char** argv){
         N_c[c] = 0;
     }
 	// Count per gene
-	cerr << "G, C: " << G << ", " << C << endl;
-	G = 25281;
-	C = 21;
+	// cerr << "G, C: " << G << ", " << C << endl;
 	double *n = new double [G];
 	// count per gene and per cell
     double **n_c = new double *[G];
@@ -79,7 +80,7 @@ int main (int argc, char** argv){
 	}
 	cerr << "Just after initializing: n_c[0][2]: " << n_c[0][2] << endl;
 	exit(0);
-	
+
 	// Gene and cell names
 	string *gene_names = new string [G];
 	string *cell_names = new string [C];
