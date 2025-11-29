@@ -67,6 +67,7 @@ int main (int argc, char** argv){
         N_c[c] = 0;
     }
 	// Count per gene
+	cerr << "G, C: " << G << ", " << C << endl;
 	double *n = new double [G];
 	// count per gene and per cell
     double **n_c = new double *[G];
