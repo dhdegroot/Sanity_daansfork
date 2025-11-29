@@ -84,6 +84,7 @@ int main (int argc, char** argv){
 	} else {
 		ReadUMIcountMatrix(in_file, n_c, N_c, n, gene_names, cell_names, N_rows, G, C, N_char);
 	}
+	cerr << "After reading: g=0, n_c[0][2]: " << n_c[0][2] << endl;
 
 	// Remove the total UMI correction if no cell size normalization option is true
 	if (no_norm){

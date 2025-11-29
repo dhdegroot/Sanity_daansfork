@@ -324,11 +324,14 @@ void ReadMTX(string mtx_file, string gene_name_file, string cell_name_file, doub
     while ( (retval = fgets(ss,1024,infp) ) != NULL) {
 		// Read values gene idx and add as expressed
 		token = strtok(retval," ");
+        cerr << token << endl;
 		g = stoi(token);
 		token = strtok(NULL," ");
 		c = stoi(token);
 		token = strtok(NULL," ");
 		count = stod(token);
+
+        cerr << "g, c, count: " << g << ", " << c << ", " << count << endl;
 
 		g = g-1;
 		c = c-1;
