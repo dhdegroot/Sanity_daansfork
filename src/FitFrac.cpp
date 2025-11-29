@@ -113,7 +113,7 @@ double normalization(double *Q,int C,double q){
             //nor += gsl_sf_lambert_W0(exp(x));
 			nor += Fukushima::LambertW(0,exp(x));
         }
-        cerr << "i, nor, x: " << i << ", " << nor << ", " << x << endl;
+        cerr << "i, nor, x, Q[i], q: " << i << ", " << nor << ", " << x << ", " << Q[i] << ", " << q << endl;
         if ((nor > 10000) || i == 2){
             exit(0);
         }
