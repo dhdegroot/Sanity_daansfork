@@ -836,25 +836,25 @@ void parse_argv(int argc,char** argv, string &in_file, string &gene_name_file, s
         }
     }
 
-	if ( extended_output == "true" || extended_output == "1" )
-		print_extended_output = true;
+	// if ( extended_output == "true" || extended_output == "1" )
+	// 	print_extended_output = true;
 
-	if ( no_norm_str == "true" || no_norm_str == "1" )
-		no_norm = true;
+	// if ( no_norm_str == "true" || no_norm_str == "1" )
+	// 	no_norm = true;
 	
-	if ( max_v_str == "true" || max_v_str == "1" || max_v_str == "only_max_output"){
-		max_v_output = true;
-		post_v_output = false;
-		}
-	// else if (max_v_str == "only_max_output"){
+	// if ( max_v_str == "true" || max_v_str == "1" || max_v_str == "only_max_output"){
 	// 	max_v_output = true;
 	// 	post_v_output = false;
 	// 	}
+	// // else if (max_v_str == "only_max_output"){
+	// // 	max_v_output = true;
+	// // 	post_v_output = false;
+	// // 	}
 
 
-	// Get input file extension
-	in_file_extension = in_file.substr(in_file.find(".")+1,in_file.length());
-	cerr << "File type : " << in_file_extension << "\n";
+	// // Get input file extension
+	// in_file_extension = in_file.substr(in_file.find(".")+1,in_file.length());
+	// cerr << "File type : " << in_file_extension << "\n";
 
 	// Get number of Character in first row, for iobuffer
 	// string command = "head -1 " + in_file + "|wc -c>" + out_folder + "tmp";
