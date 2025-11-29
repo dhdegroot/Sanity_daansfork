@@ -321,6 +321,7 @@ void ReadMTX(string mtx_file, string gene_name_file, string cell_name_file, doub
 	}
 
 	// Read following rows rest of
+    cerr << "Begin: n_c[0][2]: " << n_c[0][2] << endl;
     while ( (retval = fgets(ss,1024,infp) ) != NULL) {
 		// Read values gene idx and add as expressed
 		token = strtok(retval," ");
