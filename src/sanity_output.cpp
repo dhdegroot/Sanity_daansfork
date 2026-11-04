@@ -34,6 +34,8 @@ const char *field_file_name(OutputField field)
     case OutputField::MeanLtqError: return "d_mu";
     case OutputField::GeneVariance: return "variance";
     case OutputField::VarianceLikelihood: return "likelihood";
+    case OutputField::MeasuredLtq: return "measured_ltq";
+    case OutputField::MeasuredLtqError: return "measured_ltq_error_bars";
     }
     throw std::logic_error("Unknown output field");
 }
@@ -41,29 +43,37 @@ const char *field_file_name(OutputField field)
 // Text lines of these fields start with the gene name; the others hold only numbers.
 bool text_line_starts_with_gene(OutputField field)
 {
-    return field == OutputField::Ltq || field == OutputField::LtqError || field == OutputField::VarianceLikelihood;
+    return field == OutputField::Ltq || field == OutputField::LtqError || field == OutputField::VarianceLikelihood
+        || field == OutputField::MeasuredLtq || field == OutputField::MeasuredLtqError;
 }
 
 // Fills `values` with the numbers of one gene's row of `field`, in file order.
 void field_values(OutputField field, const RowComputation &result, std::vector<double> &values)
 {
-    const std::size_t num_cells = result.log_fold_change_c.size();
+    const std::size_t num_cells = result.ltq_c.size();
     values.clear();
     switch (field)
     {
     case OutputField::Ltq:
-        for (std::size_t c = 0; c < num_cells; ++c)
-            values.push_back(result.mean_ltq + result.log_fold_change_c[c]);
+        values = result.ltq_c;
         break;
     case OutputField::LtqError:
-        for (std::size_t c = 0; c < num_cells; ++c)
-            values.push_back(std::sqrt(result.mean_ltq_error_sq + result.log_fold_change_error_sq_c[c]));
+        for (double error_sq : result.ltq_error_sq_c)
+            values.push_back(std::sqrt(error_sq));
+        break;
+    case OutputField::MeasuredLtq:
+        values = result.measured_ltq_c;
+        break;
+    case OutputField::MeasuredLtqError:
+        for (double error_sq : result.measured_ltq_error_sq_c)
+            values.push_back(std::sqrt(error_sq));
         break;
     case OutputField::LogFoldChange:
-        values = result.log_fold_change_c;
+        for (std::size_t c = 0; c < num_cells; ++c)
+            values.push_back(result.ltq_c[c] - result.mean_ltq);
         break;
     case OutputField::LogFoldChangeError:
-        for (double error_sq : result.log_fold_change_error_sq_c)
+        for (double error_sq : result.ltq_error_sq_c)
             values.push_back(std::sqrt(error_sq));
         break;
     case OutputField::MeanLtq:
@@ -147,7 +157,7 @@ bool prepare_output_folder(const SanityOptions &options)
         // Files of the other output modes that Bonsai output mode would not overwrite, and that a
         // reader could mistake for part of its output. Its own four NPY files are overwritten.
         std::vector<std::string> other_output_files;
-        for (const char *name : {"log_transcription_quotients", "ltq_error_bars", "d_mu", "likelihood"})
+        for (const char *name : {"log_transcription_quotients", "ltq_error_bars", "d_mu", "likelihood", "measured_ltq", "measured_ltq_error_bars"})
             for (const char *extension : {".txt", ".txt.gz", ".npy"})
                 other_output_files.push_back(name + std::string(extension));
         for (const char *name : {"delta", "d_delta", "mu", "variance"})
@@ -224,6 +234,8 @@ SanityOutput::SanityOutput(const SanityOptions &options, const std::vector<std::
         add_field(OutputField::LogFoldChange, numeric_format, suffix, num_cells);
         add_field(OutputField::LogFoldChangeError, numeric_format, suffix, num_cells);
         add_field(OutputField::VarianceLikelihood, numeric_format, suffix, variance_grid_b.size());
+        add_field(OutputField::MeasuredLtq, numeric_format, suffix, num_cells);
+        add_field(OutputField::MeasuredLtqError, numeric_format, suffix, num_cells);
     }
     // Text tables carry the gene and cell names themselves; NPY arrays need them alongside.
     if (options.extended_output || options.npy_output)
@@ -246,7 +258,8 @@ SanityOutput::SanityOutput(const SanityOptions &options, const std::vector<std::
         if (file.format != FileFormat::Text)
             continue;
         std::ostringstream header;
-        if (file.field == OutputField::Ltq || file.field == OutputField::LtqError)
+        if (file.field == OutputField::Ltq || file.field == OutputField::LtqError
+            || file.field == OutputField::MeasuredLtq || file.field == OutputField::MeasuredLtqError)
         {
             header << "GeneID";
             for (const std::string &cell_name : cell_names_c)

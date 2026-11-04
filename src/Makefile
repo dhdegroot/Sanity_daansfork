@@ -33,7 +33,7 @@ IO := helpers/io
 MATH := helpers/math
 
 SANITY_OBJS := sanity_main.o sanity_options.o sanity_input.o sanity_output.o gene_fit.o fit_frac.o \
-    read_input_files.o dense_row_reader.o npy_writer.o FukushimaLambertW.o digamma_trigamma.o
+    read_input_files.o dense_row_reader.o npy_writer.o FukushimaLambertW.o
 
 Sanity: $(SANITY_OBJS) | $(BINDIR)
 	$(CC) $(CFLAGS) -o $(BINDIR)/Sanity $(SANITY_OBJS) $(LDFLAGS)
@@ -53,7 +53,7 @@ sanity_input.o: sanity_input.cpp sanity_input.hpp sanity_options.hpp gene_fit.hp
 sanity_output.o: sanity_output.cpp sanity_output.hpp sanity_options.hpp gene_fit.hpp logging.hpp Version.h $(IO)/writer.hpp $(IO)/npy_writer.hpp
 	$(CC) $(CFLAGS) -c sanity_output.cpp
 
-gene_fit.o: gene_fit.cpp gene_fit.hpp fit_frac.hpp $(MATH)/digamma_trigamma.hpp
+gene_fit.o: gene_fit.cpp gene_fit.hpp fit_frac.hpp
 	$(CC) $(CFLAGS) -c gene_fit.cpp
 
 fit_frac.o: fit_frac.cpp fit_frac.hpp $(MATH)/FukushimaLambertW.h
