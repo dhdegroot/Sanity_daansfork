@@ -9,6 +9,7 @@
 #include <vector>
 
 // "SI" is the Supplementary Information of Breda, Zavolan & van Nimwegen, Nat. Biotechnol. 2021.
+// "note" is E. van Nimwegen, "Getting proper error-bars in Sanity" (update_final_proper_error_bars.pdf), Section 2.
 // Index letters at the end of a name give what an array runs over: c = cells, b = grid points of the gene variance v_g.
 // Where the SI has n_g + 1 (Eqs. 16, 19, 26, 31, 44, 46) this code uses n_g.
 // This is intentional: the prior over alpha_g differs from the one in the SI.
@@ -135,39 +136,49 @@ static void compute_cell_estimates(const std::vector<double>& umi_counts_c, cons
     compute_log_fold_change_errors(umi_counts_c, fractions_c, log_fold_change_c, gene_total, gene_variance, log_fold_change_error_sq_c);
 }
 
-// L(v_b), the log marginal likelihood at one grid point (SI Eqs. 20, 32, 33), from f_gc and q_g at that point.
-// delta_gc is computed on the fly rather than stored.
-// The constant C*log(n_g) of log det(M_g) is dropped because it does not depend on v_g.
+// L(v_b), the log marginal likelihood at one grid point, from f*_gc and q_g at that point (note Eqs. 36-38).
+// Eq. 36 is the log posterior at the optimum x*_gc = log(f*_gc) + log(n_g) - log(N_c) (Eq. 32); Eq. 37 adds minus
+// half the log determinant of the precision matrix of Eq. 35, which is Eq. 38.
+// The quadratic term of Eq. 36 is summed around log(n_g) - q_g, which is <x*> at the exact optimum (Eq. 33), and
+// then moved to the actual mean <x*>: sum_c (x_c - <x>)^2 = sum_c (x_c - m)^2 - C (<x> - m)^2 for any m.
+// log1p is used for log(n_g f*_gc v_b + 1) because n_g f*_gc v_b is often much smaller than one.
+// This L(v_b) equals the one of the 2021 SI (Eqs. 20, 32, 33) up to a constant that does not depend on v_b, so the
+// posterior over the grid and the selected v_g are unchanged; see docs/likelihood_equivalence.md.
 static double bin_log_likelihood(const std::vector<double>& umi_counts_c, const std::vector<double>& fractions_c,
-                                 const std::vector<double>& log_cell_totals_c, double gene_total, double bin_variance,
-                                 double log_weighted_total)
+                                 const std::vector<double>& log_cell_totals_c, double gene_total, double log_gene_total,
+                                 double bin_variance, double log_weighted_total)
 {
     const int num_cells = static_cast<int>(umi_counts_c.size());
-    const double inv_total_times_variance = 1.0 / (gene_total * bin_variance); // 1/(n_g v_b)
-    double sum_log_fold_change_sq = 0; // sum_c delta_gc^2, from the Gaussian prior term of Eq. 20.
-    double log_likelihood = -0.5 * ((double)num_cells) * std::log(bin_variance); // 1st term of SI Eq. 20
+    const double total_times_variance = gene_total * bin_variance; // n_g v_b
+    const double centre = log_gene_total - log_weighted_total;     // log(n_g) - q_g, the mean <x*> up to the Newton tolerance (Eq. 33).
+    double sum_ltq = 0.0;                // sum_c x*_gc
+    double sum_counts_times_ltq = 0.0;   // sum_c n_gc x*_gc, the data term of Eq. 36
+    double sum_fractions = 0.0;          // sum_c f*_gc, which is one up to the Newton tolerance (Eq. 29)
+    double sum_centred_ltq_sq = 0.0;     // sum_c (x*_gc - centre)^2
+    double sum_log_curvature = 0.0;      // sum_c log(n_g f*_gc v_b + 1), the second term of Eq. 38
+    double sum_shrinkage = 0.0;          // sum_c n_g f*_gc v_b / (n_g f*_gc v_b + 1), C times the average in the last term of Eq. 38
     for (int c = 0; c < num_cells; ++c)
     {
-        const double delta = log_fold_change(fractions_c[c], log_cell_totals_c[c], log_weighted_total);
-        log_likelihood += umi_counts_c[c] * delta;                 // data term sum_c n_gc*delta_gc, SI Eq. 20
-        sum_log_fold_change_sq += delta * delta;
+        const double ltq = std::log(fractions_c[c]) + log_gene_total - log_cell_totals_c[c]; // x*_gc (Eq. 32)
+        sum_ltq += ltq;
+        sum_counts_times_ltq += umi_counts_c[c] * ltq;
+        sum_fractions += fractions_c[c];
+        const double deviation = ltq - centre;
+        sum_centred_ltq_sq += deviation * deviation;
+        const double scaled_expected_count = total_times_variance * fractions_c[c]; // n_g f*_gc v_b
+        sum_log_curvature += std::log1p(scaled_expected_count);
+        sum_shrinkage += scaled_expected_count / (scaled_expected_count + 1.0);
     }
-    log_likelihood -= sum_log_fold_change_sq / (2 * bin_variance); // 2nd term of SI Eq. 20
-    log_likelihood -= gene_total * log_weighted_total;     // last term of SI Eq. 20, using sum_c N_c exp(delta_gc) = exp(q_g)
-
-    // get the determinant of the matrix (SI Eq. 33)
-    double log_det_curvature = 0.0; // log det(M_g/n_g)
-    for (int c = 0; c < num_cells; ++c)
-    {
-        log_det_curvature += (fractions_c[c] * fractions_c[c]) / (fractions_c[c] + inv_total_times_variance);
-    }
-    log_det_curvature = std::log(1 - log_det_curvature);
-    for (int c = 0; c < num_cells; ++c)
-    {
-        log_det_curvature += std::log(fractions_c[c] + inv_total_times_variance);
-    }
-    log_likelihood -= 0.5 * log_det_curvature; // SI Eq. 32
-    return log_likelihood;
+    const double mean_offset = sum_ltq / num_cells - centre; // <x*> - centre
+    const double sum_ltq_deviation_sq = sum_centred_ltq_sq - num_cells * mean_offset * mean_offset; // sum_c (x*_gc - <x*>)^2
+    // Eq. 36, the log posterior at the optimum.
+    const double log_posterior = -0.5 * (num_cells - 1) * std::log(bin_variance)
+                                 + sum_counts_times_ltq - gene_total * sum_fractions
+                                 - sum_ltq_deviation_sq / (2.0 * bin_variance);
+    // Eq. 38, log det(M) of the precision matrix of Eq. 35.
+    const double log_det_precision = -num_cells * std::log(bin_variance) + sum_log_curvature
+                                     + std::log(sum_shrinkage / num_cells);
+    return log_posterior - 0.5 * log_det_precision; // Eq. 37
 }
 
 // P(v_b | n_g), the normalised posterior over the grid (SI Eq. 34), from L(v_b) and its maximum over the grid.
@@ -331,6 +342,7 @@ RowComputation get_gene_expression_level(const std::vector<double> &umi_counts_c
 {
     const int num_cells = static_cast<int>(umi_counts_c.size());
     const int num_bins = static_cast<int>(variance_grid_b.size());
+    const double log_gene_total = std::log(gene_total); // log(n_g), the constant of Eq. 32.
     const double digamma_total = digamma(gene_total); // psi(n_g) (SI Eq. 44).
     const double trigamma_total = trigamma(gene_total); // psi_1(n_g), the variance of log(alpha_g) (SI Eq. 46).
 
@@ -349,7 +361,7 @@ RowComputation get_gene_expression_level(const std::vector<double> &umi_counts_c
         workspace.mean_ltq_b[b] = digamma_total - log_weighted_total; /*** SI Eq. 44 ***/
 
         // Log marginal likelihood L(v_b) at this grid point, stored per grid point, while tracking the maximum for the MLE.
-        const double log_likelihood = bin_log_likelihood(umi_counts_c, workspace.fractions_c, log_cell_totals_c, gene_total, bin_variance, log_weighted_total);
+        const double log_likelihood = bin_log_likelihood(umi_counts_c, workspace.fractions_c, log_cell_totals_c, gene_total, log_gene_total, bin_variance, log_weighted_total);
         workspace.log_likelihood_b[b] = log_likelihood;
         if (log_likelihood > max_log_likelihood)
         {
