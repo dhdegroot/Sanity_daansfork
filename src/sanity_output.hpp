@@ -11,6 +11,7 @@
 #include "sanity_options.hpp"
 
 // "SI" in the comments is the Supplementary Information of Breda, Zavolan & van Nimwegen, Nat. Biotechnol. 2021.
+// "note" is E. van Nimwegen, "Getting proper error-bars in Sanity" (update_final_proper_error_bars.pdf), Section 2.
 
 // Creates the output folder (its parent must exist) and, in Bonsai output mode, checks that it holds no
 // earlier text output. Logs the reason and returns false if the run cannot write there.
@@ -22,13 +23,15 @@ void write_command_metadata(const SanityOptions &options, int argc, char **argv)
 // One numerical result per gene, each written to its own file.
 enum class OutputField
 {
-    Ltq,                // x_gc = mu_g + delta_gc, the log transcription quotients (SI Eq. 45 and 39).
-    LtqError,           // sqrt((delta mu_g)^2 + epsilon_gc^2), the error bars on x_gc (SI Eqs. 42, 47).
-    LogFoldChange,      // delta_gc (SI Eq. 39).
-    LogFoldChangeError, // epsilon_gc, the standard deviation of delta_gc (SI Eq. 42).
-    MeanLtq,            // mu_g (SI Eq. 45).
-    MeanLtqError,       // delta mu_g, the standard deviation of mu_g (SI Eq. 47).
-    GeneVariance,       // v_g (SI Eq. 17).
+    Ltq,                // x*_gc, the posterior log transcription quotients (note Eq. 32; MARG: Eq. 47).
+    LtqError,           // epsilon_gc, the posterior error bars on x_gc (note Eq. 41; MARG: Eq. 48).
+    MeasuredLtq,        // x^m_gc, the measurement LTQs with the prior divided out (note Eq. 44).
+    MeasuredLtqError,   // 1/sqrt(n_g f*_gc), the measurement error bars (note Eq. 46).
+    LogFoldChange,      // delta_gc = x*_gc - mu_g, the log fold change from the mean LTQ.
+    LogFoldChangeError, // epsilon_gc, the same error bar as LtqError, as read by Sanity_distance and Sanity_gene_correlation.
+    MeanLtq,            // mu_g (note Eq. 33; MARG: Eq. 49).
+    MeanLtqError,       // sigma_mu, the standard deviation of mu_g (note Eq. 43; MARG: Eq. 50).
+    GeneVariance,       // v_g (note Eq. 25).
     VarianceLikelihood  // P(v_b | n_g) on the grid of variances (SI Eq. 34).
 };
 
