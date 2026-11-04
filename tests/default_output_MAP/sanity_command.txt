@@ -1,4 +1,5 @@
-# Timestamp: 2026-11-04 16:08:39
+# Timestamp: 2026-11-05 00:44:18
 # Sanity version: 2.0.0
 # Method: MAP
+# LTQ estimate: posterior
 ../bin/Sanity -f count_table.tsv -d default_output_MAP -v_m MAP -e 1
