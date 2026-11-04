@@ -5,6 +5,14 @@
 
 #include "gene_fit.hpp"
 
+// Which LTQ estimates the default output holds (--ltq-estimate); -e 1 always writes both kinds.
+enum class LtqEstimate
+{
+    Posterior = 0, // x*_gc with the posterior error bars epsilon_gc (note Eqs. 32, 41); the default.
+    Measured = 1,  // x^m_gc with the measurement error bars 1/sqrt(n_g f*_gc) (note Eqs. 44, 46).
+    Both = 2       // Both pairs of files.
+};
+
 // Everything the command line of Sanity can set, with its default.
 struct SanityOptions
 {
@@ -22,6 +30,7 @@ struct SanityOptions
     bool gzip_output = false;               // -gz: compress the numerical text files; overridden by -npy.
     bool npy_output = false;                // -npy: write the numerical output files as NPY; overrides -gz.
     bool bonsai_output_mode = false;        // --bonsai-output-mode: the Bonsai file set; overrides -e, -gz and -npy.
+    LtqEstimate ltq_estimate = LtqEstimate::Posterior; // --ltq-estimate: what the default files hold; Bonsai mode defaults to Measured.
 };
 
 enum class ParseResult
@@ -39,5 +48,8 @@ void show_usage();
 
 // The name of a variance method as written to sanity_command.txt ("MARG", "MLE", "MAP" or "EAP").
 const char *variance_method_name(VarianceMethod variance_method);
+
+// The name of an LTQ estimate as written to sanity_command.txt ("posterior", "measured" or "both").
+const char *ltq_estimate_name(LtqEstimate ltq_estimate);
 
 #endif

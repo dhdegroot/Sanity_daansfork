@@ -25,7 +25,8 @@ enum class Option
     VarianceMethod,
     GzipOutput,
     NpyOutput,
-    BonsaiOutputMode
+    BonsaiOutputMode,
+    LtqEstimateOption
 };
 
 struct OptionSpec
@@ -51,6 +52,7 @@ const std::vector<OptionSpec> option_table = {
     {Option::GzipOutput, {"-gz", "--gzip_output", "--gz", "--gzip-output"}, false},
     {Option::NpyOutput, {"-npy", "--npy_output", "--npy", "--npy-output"}, false},
     {Option::BonsaiOutputMode, {"--bonsai-output-mode"}, false},
+    {Option::LtqEstimateOption, {"-ltq", "--ltq-estimate", "--ltq_estimate"}, true},
 };
 
 // Returns the table entry matched by `arg`, or nullptr if `arg` is not a known option.
@@ -88,6 +90,22 @@ bool parse_variance_method(const std::string &name, VarianceMethod &variance_met
     else
     {
         logging_debug("Invalid method specified for variance estimation.");
+        return false;
+    }
+    return true;
+}
+
+bool parse_ltq_estimate(const std::string &name, LtqEstimate &ltq_estimate)
+{
+    if (name == "posterior")
+        ltq_estimate = LtqEstimate::Posterior;
+    else if (name == "measured")
+        ltq_estimate = LtqEstimate::Measured;
+    else if (name == "both")
+        ltq_estimate = LtqEstimate::Both;
+    else
+    {
+        logging_debug("Invalid value for --ltq-estimate: '" + name + "' (choice: posterior, measured, both).");
         return false;
     }
     return true;
@@ -138,6 +156,7 @@ ParseResult parse_options(int argc, char **argv, SanityOptions &options)
     bool have_input_file = false;
     std::string extended_output("false");
     std::string variance_method_str("MAP");
+    std::string ltq_estimate_str; // Empty until given: the default depends on the output mode.
     for (int i = 1; i < argc; i++)
     {
         // Anything that is not a known option, or the value of one, is rejected. Without this, a
@@ -201,6 +220,9 @@ ParseResult parse_options(int argc, char **argv, SanityOptions &options)
         case Option::VarianceMethod:
             variance_method_str = value;
             break;
+        case Option::LtqEstimateOption:
+            ltq_estimate_str = value;
+            break;
         default:
             break;
         }
@@ -223,6 +245,12 @@ ParseResult parse_options(int argc, char **argv, SanityOptions &options)
         options.gzip_output = false;
     }
 
+    // The default files hold the posterior estimates; Bonsai consumes the measurement estimates.
+    if (ltq_estimate_str.empty())
+        ltq_estimate_str = options.bonsai_output_mode ? "measured" : "posterior";
+    if (!parse_ltq_estimate(ltq_estimate_str, options.ltq_estimate))
+        return ParseResult::Error;
+
     // Bonsai output mode writes one fixed set of files, whatever -e, -gz and -npy say. It does need
     // MAP: that is a choice of inference, not of output, so it is not overridden silently.
     if (options.bonsai_output_mode)
@@ -230,6 +258,11 @@ ParseResult parse_options(int argc, char **argv, SanityOptions &options)
         if (options.variance_method != VarianceMethod::MAP)
         {
             logging_debug("Bonsai output mode requires MAP; use -v_m MAP.");
+            return ParseResult::Error;
+        }
+        if (options.ltq_estimate == LtqEstimate::Both)
+        {
+            logging_debug("Bonsai output mode holds one kind of LTQ estimate; use --ltq-estimate posterior or measured.");
             return ParseResult::Error;
         }
         if (options.extended_output || options.gzip_output || options.npy_output)
@@ -256,6 +289,7 @@ void show_usage()
               << "\t-gz,--gzip_output\tCompress the numerical text output files with gzip (.gz); overridden by -npy\n"
               << "\t-npy,--npy_output\tWrite the numerical output files as float64 NumPy arrays (.npy) instead of text; overrides -gz\n"
               << "\t--bonsai-output-mode\tWrite only the four numerical files and IDs/metadata required by Bonsai (NPY, MAP); ignores -e, -gz and -npy\n"
+              << "\t-ltq,--ltq-estimate\tWhich LTQ estimates the default output holds: posterior (x* with posterior error bars, default), measured (x^m with measurement error bars; the default in Bonsai output mode) or both; -e 1 writes both kinds\n"
               << "\t-vmin,--variance_min\tMinimal value of variance in log transcription quotient (default: 0.001)\n"
               << "\t-vmax,--variance_max\tMaximal value of variance in log transcription quotient (default: 50)\n"
               << "\t-nbin,--number_of_variance_bins\tNumber of bins for the variance in log transcription quotient  (default: 160)\n"
@@ -266,4 +300,10 @@ const char *variance_method_name(VarianceMethod variance_method)
 {
     static const char *names[] = {"MARG", "MLE", "MAP", "EAP"};
     return names[static_cast<int>(variance_method)];
+}
+
+const char *ltq_estimate_name(LtqEstimate ltq_estimate)
+{
+    static const char *names[] = {"posterior", "measured", "both"};
+    return names[static_cast<int>(ltq_estimate)];
 }
