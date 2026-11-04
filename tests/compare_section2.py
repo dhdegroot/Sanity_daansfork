@@ -171,13 +171,13 @@ def check_identities(counts, log_N, sum_N, grid, report):
     report("<x*> - (log n - q)", abs(est["mu"] - (np.log(n) - q)), 1e-12)
     # Eq. 30 at the optimum: x*_c - <x*> = v (n_c - n f*_c).
     report("Eq. 30 residual", np.abs((est["x"] - est["mu"]) - v * (counts - n * f)).max(), 1e-9)
-    # Eqs. 40, 41, 43 against the inverse of M (Eq. 35).
+    # Eqs. 40, 41, 43 against the inverse of M (Eq. 35); the tolerance allows for the conditioning of a C x C inverse.
     cov = np.linalg.inv(precision_matrix(n, v, f))
     v_c = est["v_c"]
     cov_40 = np.diag(v_c) + np.outer(v_c, v_c) / (C * (v - v_c.mean()))
-    report("Eq. 40 vs inv(M), max abs", np.abs(cov - cov_40).max(), 1e-10 * np.abs(cov).max())
-    report("Eq. 41 vs diag inv(M), max rel", (np.abs(np.diag(cov) - est["eps_sq"]) / np.diag(cov)).max(), 1e-10)
-    report("Eq. 43 vs mean of inv(M), rel", abs(cov.sum() / C ** 2 - est["sigma_mu_sq"]) / est["sigma_mu_sq"], 1e-10)
+    report("Eq. 40 vs inv(M), max abs", np.abs(cov - cov_40).max(), 1e-8 * np.abs(cov).max())
+    report("Eq. 41 vs diag inv(M), max rel", (np.abs(np.diag(cov) - est["eps_sq"]) / np.diag(cov)).max(), 1e-8)
+    report("Eq. 43 vs mean of inv(M), rel", abs(cov.sum() / C ** 2 - est["sigma_mu_sq"]) / est["sigma_mu_sq"], 1e-8)
     # Eqs. 36-38 minus the SI's L(v) is constant over the grid (docs/likelihood_equivalence.md).
     diff = []
     for k, vk in enumerate(grid):
