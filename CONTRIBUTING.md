@@ -42,7 +42,7 @@ Look for issues labelled `good first issue` or `help wanted` for places to start
 - Git
 - OpenMP
 - zlib
-- Python 3 with `numpy` (`pip3 install numpy`), to run `tests/compare.py`
+- Python 3 with `numpy` (`pip3 install numpy`), to run the tests in `tests/`
 
 For how to install the OpenMP and zlib dependencies on Linux and macOS, follow the
 [Installation section of the README](README.md#installation) rather than duplicating the steps
@@ -75,6 +75,13 @@ python3 compare.py
 ## Source layout
 
 The top level of `src` holds the Sanity-specific code: the three programs (`sanity_main.cpp`, `sanity_distance.cpp`, `sanity_gene_correlation.cpp`), the per-gene fit (`gene_fit`), the solver for the cell fractions at one gene variance (`fit_frac`) and `Version.h`.
+The fit implements Section 2 of E. van Nimwegen's note "Getting proper error-bars in Sanity"; comments cite its
+equation numbers ("note Eq. 41") or those of the 2021 SI ("SI Eq. 34"). `docs/output_logic.md` maps every output
+file to its equation, `docs/likelihood_equivalence.md` relates the likelihood to the SI's, and
+`docs/measured_ltq_linearisation.md` discusses the measurement LTQs. Within `gene_fit.cpp`, per-cell quantities are
+computed in passes over the cells rather than stored, and anything averaged over the variance grid (MARG) is
+accumulated bin by bin; keep it that way, and keep multithreaded runs bit-identical to `-n 1` (no reductions whose
+order depends on the thread count).
 `sanity_main.cpp` only ties the steps together; the steps of the main program live in their own files:
 
 - `sanity_options`: the command-line options, their parsing and the usage text.
@@ -136,8 +143,11 @@ the two makes a change very hard to review.
 ### Testing
 
 Sanity does not have a comprehensive test suite. `tests/compare.py` checks the output of a run
-against checked-in reference outputs for all four `-v_m` methods; see [tests/README.md](tests/README.md).
-Any change that is meant to be behaviour-preserving should leave those outputs identical. If you
+against checked-in reference outputs for all four `-v_m` methods, and `tests/compare_section2.py`
+checks it against an independent NumPy implementation of the fit's equations; see [tests/README.md](tests/README.md).
+Any change that is meant to be behaviour-preserving should leave the `compare.py` outputs identical; a change that
+alters the inference on purpose must pass `compare_section2.py` (adapted if the equations change) before the
+reference outputs are regenerated, and the commit that regenerates them should say so. If you
 add a feature or fix a bug, adding a test is very welcome.
 
 ## Community

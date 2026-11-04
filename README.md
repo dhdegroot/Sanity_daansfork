@@ -8,6 +8,8 @@ J Breda, M Zavolan, E van Nimwegen - Nature Biotechnology, 2021](https://www.nat
 Sanity infers the log expression levels *x<sub>gc</sub>* of gene *g* in cell *c* by filtering out 
 the Poisson noise on the UMI count matrix *n<sub>gc</sub>* of gene *g* in cell *c*.
 
+The fit estimates the log transcription quotients (LTQs) *x<sub>gc</sub>* directly, with error bars from the full posterior over the cells, following Section 2 of E. van Nimwegen's note "Getting proper error-bars in Sanity"; the equations behind every output file are listed in [docs/output_logic.md](docs/output_logic.md).
+
 
 
 ### Reproducibility
@@ -49,7 +51,8 @@ The MTX file can be compressed with gzip (with `.gz` extension).
   Fractional counts, gzip input, and counts or totals outside the exact integer range of double precision use the existing serial MTX reader. If an unsupported count is encountered during parallel indexing, the input scan restarts with that reader. The indexing log reports the reader, actual thread count and elapsed time. TSV input retains its existing reader.
   During inference, each worker reuses its count buffer. Plain MTX rows are read through a bounded buffer with direct numeric parsing; fractional counts are supported. TSV and gzip retain their existing numeric conversion.
 
-* `-e`: (optional) Print extended output (Boolean, `'true', 'false', '1'` or `'0'`, default: `false`)
+* `-e`: (optional) Print extended output (Boolean, `'true', 'false', '1'` or `'0'`, default: `false`). See [Output](#output).
+* `-ltq`/`--ltq-estimate`: (optional) Which LTQ estimates the default output holds: `posterior` (default; *x\*<sub>gc</sub>* with the posterior error bars), `measured` (*x<sup>m</sup><sub>gc</sub>* with the measurement error bars, the default in Bonsai output mode) or `both`. With `-e 1` both kinds are always written. See [Output](#output).
 * `-gz`: (optional flag, no value) Compress the numerical text output files with gzip (`.txt.gz`). Overridden by `-npy`. See [Output formats](#output-formats-optional).
 * `-npy`: (optional flag, no value) Write the numerical output files as float64 NumPy arrays (`.npy`) instead of text. Overrides `-gz`. See [Output formats](#output-formats-optional).
 * `--bonsai-output-mode`: (optional flag, no value) Write only the numerical files and metadata required by Bonsai (NPY, MAP). Overrides `-e`, `-gz` and `-npy`.
@@ -61,33 +64,36 @@ The MTX file can be compressed with gzip (with `.gz` extension).
 * `-vmin/-vmax`: (optional, expert-user-only) Minimal and maximal considered values of the variance in log transcription quotients (double, default: *v<sub>min</sub>=*`0.001` *v<sub>max</sub>=*`50`)
 * `-nbin`: (optional, expert-user-only) Number of bins for the variance in log transcription quotients (integer, default: `160`)
 
-For MAP, MLE and EAP, Sanity searches the complete variance grid first and
-calculates cell uncertainties only for the selected output bin. It retains
-compact fitting results for each bin and reconstructs the selected bin’s cell
-fractions and expression estimates, instead of storing cell-sized arrays for
-every bin. MARG still
-calculates uncertainties at every bin because it averages over the grid.
-The variance grid, bin selection and uncertainty formulas are unchanged.
-Library-size constants are computed once, and each gene’s digamma and
-trigamma values are computed once. Each worker also reuses its fitting workspace across bins and genes. These changes
-avoid repeated calculations and allocations without changing the fitting
-algorithm or its convergence tolerance.
+### How the fit works
+
+For every gene, Sanity fits the optimal cell fractions *f\*<sub>gc</sub>* and the log marginal likelihood *L(v<sub>g</sub>)*
+at every point of the variance grid, keeping only four numbers per grid point. For MAP, MLE and EAP one grid point is
+then selected and all cell estimates are made there, in two passes over the cells and without per-cell scratch arrays:
+the posterior LTQs *x\*<sub>gc</sub> = log(f\*<sub>gc</sub>) + log(n<sub>g</sub>) − log(N<sub>c</sub>)*, their posterior
+error bars *&epsilon;<sub>gc</sub>* (the diagonal of the posterior covariance of the Laplace approximation, which includes
+the uncertainty on the gene mean), the mean LTQ *&mu;<sub>g</sub> = &lang;x\*&rang;* with its error bar, and the
+measurement LTQs *x<sup>m</sup><sub>gc</sub>* (the posterior with the prior divided out) with error bars
+*1/sqrt(n<sub>g</sub> f\*<sub>gc</sub>)*. MARG makes the same estimates at every grid point and averages them over the
+posterior of *v<sub>g</sub>*, bin by bin. The formulas are those of Section 2 of the note "Getting proper error-bars in
+Sanity" (Eqs. 31–50); [docs/output_logic.md](docs/output_logic.md) maps every output file to its equation, and
+[docs/likelihood_equivalence.md](docs/likelihood_equivalence.md) shows that the selected *v<sub>g</sub>* is the same as
+in version 2.0. Zero-count cells get the same posterior error bar as every other cell; the earlier asymmetric
+zero-count error bar is gone. Runs with different `-n` give bit-identical results.
 
 Text output uses fixed six-decimal formatting. Each inference worker formats
 one gene row, and complete rows are written in gene order. Formatting uses the
 same `-n` worker count as inference; there is no separate writer thread setting.
 The number of formatted rows held in memory is bounded by the worker count.
 
-For zero-count cells, uncertainty is calculated from the positive displacement
-`e` at which `e*(2*delta+e)/(2*v) + n*log(1+f*(exp(e)-1)) = 0.5`.
-Here `n` is the total count for the gene and `f` its fitted fraction for the cell.
-Sanity evaluates the full logarithm with `log1p` and `expm1`, with an overflow-safe
-form for large displacements. The likelihood-drop tolerance remains `1e-7`.
-This changes zero-count uncertainty relative to the previous logarithm
-linearization; it retains the existing Gaussian uncertainty model and does not
-change the fitted means, likelihood grid or selected gene variance.
-
 ## Output
+
+Sanity reports two kinds of LTQ estimates. The **posterior** estimates *x\*<sub>gc</sub>* with error bars
+*&epsilon;<sub>gc</sub>* are the best estimates of the LTQs given the counts and the fitted prior of the gene (mean
+*&mu;<sub>g</sub>*, variance *v<sub>g</sub>*). The **measurement** estimates *x<sup>m</sup><sub>gc</sub>* with error
+bars *1/sqrt(n<sub>g</sub> f\*<sub>gc</sub>)* are the posterior estimates with that prior divided out, for downstream
+methods such as Bonsai that combine the measurements with a prior of their own; their error bars are the pure sampling
+noise and can be very large for cells with few expected counts. `--ltq-estimate` selects which kind the default output
+holds (`posterior` unless `--bonsai-output-mode` is given); `-e 1` writes both.
 
 * `log_transcription_quotients.txt`: This file contains the estimated values of the log-transcription quotients (LTQs) for each gene in each cell. The LTQ *x<sub>gc</sub>* of gene *g* in cell *c* corresponds to the estimated logarithm of the fraction of mRNAs in cell *c* that belong to gene *g*. The LTQs are thus normalized such that *&Sigma;<sub>g</sub> exp(x<sub>gc</sub>) = 1* for each cell *c*. In order to get an estimate of the number of mRNAs for gene *g* in cell *c* one would thus need to multiply *exp(x<sub>gc</sub>)* by the estimated total number of mRNAs *M* in the cell.
 
@@ -97,7 +103,7 @@ change the fitted means, likelihood grid or selected gene variance.
   | Gene 2 |  -9.96744 | -10.2522 | -10.1453 | ... |
   | ... | ... | ... | ... | ... |
   
-* `ltq_error_bars.txt`: Table with the error-bars on the estimates of the LTQs *x<sub>gc</sub>* for each gene *g* in each cell *c*.
+* `ltq_error_bars.txt`: Table with the error-bars *&epsilon;<sub>gc</sub>* (standard deviations) on the estimates of the LTQs *x<sub>gc</sub>* for each gene *g* in each cell *c*. They are the diagonal of the posterior covariance over the cells and include the uncertainty on the gene mean *&mu;<sub>g</sub>*.
 
   | GeneID | Cell 1 | Cell 2 | Cell 3 | ... |
   |:-------|:------:|:------:|:------:|:---:|
@@ -106,13 +112,15 @@ change the fitted means, likelihood grid or selected gene variance.
   | ... | ... | ... | ... | ... |
 
 
+* `measured_ltq.txt` and `measured_ltq_error_bars.txt` (with `-ltq measured`, `-ltq both` or `-e 1`): the measurement LTQs *x<sup>m</sup><sub>gc</sub>* and their error bars *1/sqrt(n<sub>g</sub> f\*<sub>gc</sub>)*, in the same layout as the two files above. With `-ltq measured` these two replace them.
+
 ## Extended output (optional)
 
-* `mu.txt`: Estimated average LTQ *&mu;<sub>g</sub>* of each gene *g* averaged over all cells.One value per line. Order corresponds to the order of genes in the `geneID.txt` file.
+* `mu.txt`: Estimated average LTQ *&mu;<sub>g</sub> = &lang;x\*<sub>gc</sub>&rang;* of each gene *g* averaged over all cells. One value per line. Order corresponds to the order of genes in the `geneID.txt` file.
 * `d_mu.txt`: Error bars on the inferred mean LTQs *&mu;<sub>g</sub>*. One value per line. Order corresponds to the order of genes in the `geneID.txt` file.
 * `variance.txt`: Estimated variance of the LTQs *x<sub>gc</sub>* across cells *c* for each gene *g*. Note that these variances are different, and generally larger, than what one would obtain when directly calculating the variance of the estimates of *x<sub>gc</sub>* from the file `log_transcription_quotients.txt`. This is because the estimates in this file take into account the uncertainty on the estimates of the *x<sub>gc</sub>*. Thus, when estimates of true gene expression variability are needed, you are strongly advised to use the results in this file. Order corresponds to the order of genes in the `geneID.txt` file.
-* `delta.txt`: Matrix of inferred log-fold changes *&delta;<sub>gc</sub> = x<sub>gc</sub>-&mu;<sub>g</sub>* for each gene *g* in each cell *c*. TSV file, columns correspond to cell IDs from `cellID.txt` file, rows correspond to gene IDs from `geneID.txt` file.
-* `d_delta.txt`: Matrix of error-bars for the inferred log fold-changes *&delta;<sub>gc</sub>*. TSV file, columns correspond to cell IDs from `cellID.txt` file, rows correspond to gene IDs from `geneID.txt` file.
+* `delta.txt`: Matrix of inferred log-fold changes *&delta;<sub>gc</sub> = x\*<sub>gc</sub>-&mu;<sub>g</sub>* for each gene *g* in each cell *c*. TSV file, columns correspond to cell IDs from `cellID.txt` file, rows correspond to gene IDs from `geneID.txt` file. Read by `Sanity_distance` and `Sanity_gene_correlation`.
+* `d_delta.txt`: Matrix of error-bars for the inferred log fold-changes *&delta;<sub>gc</sub>*; the same values as `ltq_error_bars.txt`. TSV file, columns correspond to cell IDs from `cellID.txt` file, rows correspond to gene IDs from `geneID.txt` file.
 * `likelihood.txt`: This file encodes the posterior distribution of each gene's true variance in log-expression. For the numerical calculation of this distribution, the variance is a priori assumed to lie in the range *[v<sub>min</sub>,v<sub>max</sub>]*, and the distribution is evaluated on a grid of *N<sub>b</sub>* values spaced uniformly on a logarithmic scale. The file contains a matrix with likelihoods for each gene *g* and each grid point *b*. The first line lists the grid values *v<sub>b</sub> = v<sub>min</sub> exp(b &middot; &Delta;v)* for *b = 0,...,N<sub>b</sub>-1* with *&Delta;v = log(v<sub>max</sub>/v<sub>min</sub>)/(N<sub>b</sub>-1)*, so the first and last values are *v<sub>min</sub>* and *v<sub>max</sub>* themselves; the following lines correspond to the likelihood values of genes.
 
   | | | | | |
@@ -124,39 +132,43 @@ change the fitted means, likelihood grid or selected gene variance.
   
 ## Output formats (optional)
 
-`-e` chooses which results are written; `-gz` and `-npy` only change how they are written. Both combine with `-e`; `-npy` overrides `-gz`.
+`-e` and `--ltq-estimate` choose which results are written; `-gz` and `-npy` only change how they are written. Both combine with `-e`; `-npy` overrides `-gz`.
 
 * `-gz`: every numerical text file gets a `.gz` extension and is gzip-compressed; `geneID.txt` and `cellID.txt` stay plain text. `Sanity_distance` and `Sanity_gene_correlation` read uncompressed text only.
 * `-npy`: every numerical file is written as a float64 NPY array with the same base name, e.g. `log_transcription_quotients.npy` and, with `-e`, `delta.npy`. Matrices have shape `(genes, cells)`, `likelihood.npy` has shape `(genes, bins)`, and the per-gene values (`mu`, `d_mu`, `variance`) have shape `(genes, 1)`. The arrays hold no names, so `geneID.txt` and `cellID.txt` are always written; with `-e`, `likelihood_grid.npy` (shape `(bins, 1)`) holds the variance grid that heads the text likelihood table. Error bars are standard deviations, as in the text files, but values are not rounded to six decimals.
 * With both flags, `-npy` wins: the NPY files are not compressed, so that they can still be memory-mapped.
 
-| Files | default | `-e 1` |
-|:--|:--|:--|
-| text | `log_transcription_quotients.txt`, `ltq_error_bars.txt` | + `mu`, `d_mu`, `variance`, `delta`, `d_delta`, `likelihood` (`.txt`), `geneID.txt`, `cellID.txt` |
-| `-gz` | the same, as `.txt.gz` | the same, as `.txt.gz` (`geneID.txt`, `cellID.txt` uncompressed) |
-| `-npy` | `log_transcription_quotients.npy`, `ltq_error_bars.npy`, `geneID.txt`, `cellID.txt` | + `mu`, `d_mu`, `variance`, `delta`, `d_delta`, `likelihood` (`.npy`), `likelihood_grid.npy` |
+| Files | default (`-ltq posterior`) | `-ltq measured` | `-ltq both` | `-e 1` (any `-ltq`) |
+|:--|:--|:--|:--|:--|
+| text | `log_transcription_quotients.txt`, `ltq_error_bars.txt` | `measured_ltq.txt`, `measured_ltq_error_bars.txt` | both pairs | both pairs + `mu`, `d_mu`, `variance`, `delta`, `d_delta`, `likelihood` (`.txt`), `geneID.txt`, `cellID.txt` |
+| `-gz` | the same, as `.txt.gz` | the same, as `.txt.gz` | the same, as `.txt.gz` | the same, as `.txt.gz` (`geneID.txt`, `cellID.txt` uncompressed) |
+| `-npy` | the pair as `.npy`, `geneID.txt`, `cellID.txt` | the pair as `.npy`, `geneID.txt`, `cellID.txt` | both pairs as `.npy`, `geneID.txt`, `cellID.txt` | everything as `.npy`, `likelihood_grid.npy`, `geneID.txt`, `cellID.txt` |
 
 ## Bonsai output mode (optional)
 
 Use `--bonsai-output-mode` to write only:
 
 - `delta.npy` and `d_delta.npy`: float32 arrays of shape `(genes, cells)`,
-  containing deviations and their **standard deviations** (not variances).
+  containing deviations from the gene mean and their **standard deviations** (not variances).
+  By default these are the measurement estimates, *x<sup>m</sup><sub>gc</sub> − &mu;<sub>g</sub>* and
+  *1/sqrt(n<sub>g</sub> f\*<sub>gc</sub>)*; with `--ltq-estimate posterior` they are the posterior estimates
+  *x\*<sub>gc</sub> − &mu;<sub>g</sub>* and *&epsilon;<sub>gc</sub>* instead.
 - `mu.npy` and `variance.npy`: float64 arrays of shape `(genes, 1)`, containing
   one baseline mean and one prior variance per gene.
 - `geneID.txt`, `cellID.txt` and `sanity_command.txt`: identifiers and version,
-  method, output format and command metadata.
+  method, LTQ estimate, output format and command metadata.
 
 ```bash
 ./bin/Sanity -f counts.tsv -d bonsai_output -n 12 --bonsai-output-mode
 ```
 
 This flag requires MAP inference. It selects these seven files and ignores
-`-e`, `-gz` and `-npy`. Use a folder without output of the other modes; Sanity
+`-e`, `-gz` and `-npy`; `--ltq-estimate both` is rejected. Use a folder without output of the other modes; Sanity
 reports an error if such files are present.
 
 `sanity_command.txt` records `# Output mode: bonsai` so consumers can select
-the NPY reader without another command-line option.
+the NPY reader without another command-line option, and `# LTQ estimate: measured`
+(or `posterior`) so they know what `delta.npy` holds.
 
 Arrays use NPY version 1.0, little-endian values and C order. Row order matches
 `geneID.txt`; matrix columns match `cellID.txt`. Inference and uncertainty
@@ -184,6 +196,7 @@ matrix using `numpy.load(path, mmap_mode="r", allow_pickle=False)`.
     -gz, --gzip_output                  Compress the numerical text output files with gzip (.gz); overridden by -npy
     -npy, --npy_output                  Write the numerical output files as float64 NumPy arrays (.npy) instead of text; overrides -gz
     --bonsai-output-mode                Write only the four numerical files and IDs/metadata required by Bonsai (NPY, MAP); ignores -e, -gz and -npy
+    -ltq, --ltq-estimate                Which LTQ estimates the default output holds: posterior (default), measured (default in Bonsai output mode) or both; -e 1 writes both kinds
     -v_m, --v_method                    Option to specify the method for variance estimation (default: MAP, choice: MAP, EAP, MLE, MARG)
     -vmin, --variance_min               Minimal value of variance in log transcription quotient (default: 0.001)
     -vmax, --variance_max               Maximal value of variance in log transcription quotient (default: 50)
@@ -289,7 +302,7 @@ python3 sort_mtx_by_row.py -i input.mtx
 ```
 
 ## Tests
-A simple test comparing Sanity's output across the `-v_m` methods (MAP, EAP, MLE, MARG) on a small count matrix is available in the `tests` directory. See [tests/README.md](tests/README.md) for details on running it.
+A simple test comparing Sanity's output across the `-v_m` methods (MAP, EAP, MLE, MARG) on a small count matrix is available in the `tests` directory, together with an independent NumPy implementation of the fit's equations (`tests/compare_section2.py`). See [tests/README.md](tests/README.md) for details on running them.
 
 ## Help
 For any questions or assistance regarding Sanity, please post your question in the issues section.
