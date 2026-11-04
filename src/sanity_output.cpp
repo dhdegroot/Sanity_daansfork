@@ -36,6 +36,7 @@ const char *field_file_name(OutputField field)
     case OutputField::VarianceLikelihood: return "likelihood";
     case OutputField::MeasuredLtq: return "measured_ltq";
     case OutputField::MeasuredLtqError: return "measured_ltq_error_bars";
+    case OutputField::MeasuredLogFoldChange: return "measured_delta";
     }
     throw std::logic_error("Unknown output field");
 }
@@ -75,6 +76,10 @@ void field_values(OutputField field, const RowComputation &result, std::vector<d
     case OutputField::LogFoldChangeError:
         for (double error_sq : result.ltq_error_sq_c)
             values.push_back(std::sqrt(error_sq));
+        break;
+    case OutputField::MeasuredLogFoldChange:
+        for (std::size_t c = 0; c < num_cells; ++c)
+            values.push_back(result.measured_ltq_c[c] - result.mean_ltq);
         break;
     case OutputField::MeanLtq:
         values.push_back(result.mean_ltq);
@@ -193,10 +198,14 @@ void write_command_metadata(const SanityOptions &options, int argc, char **argv)
     cmd_file << "# Timestamp: " << timestamp << "\n";
     cmd_file << "# Sanity version: " << SANITY_VERSION << "\n";
     cmd_file << "# Method: " << variance_method_name(options.variance_method) << "\n";
+    cmd_file << "# LTQ estimate: " << ltq_estimate_name(options.ltq_estimate) << "\n";
     if (options.bonsai_output_mode)
         cmd_file << "# Output mode: bonsai\n"
                     "# Output: Bonsai NPY; delta/d_delta: <f4; mu/variance: <f8; "
-                    "C-order genes x cells; gene vectors: genes x 1; d_delta: standard deviation\n";
+                    "C-order genes x cells; gene vectors: genes x 1; d_delta: standard deviation; "
+                 << (options.ltq_estimate == LtqEstimate::Measured
+                         ? "delta = x^m - mu (measurement LTQ minus mean), d_delta = 1/sqrt(n f*)\n"
+                         : "delta = x* - mu (posterior LTQ minus mean), d_delta = posterior error bar\n");
     cmd_file << argv[0];
     for (int i = 1; i < argc; ++i)
         cmd_file << " " << argv[i];
@@ -211,8 +220,18 @@ SanityOutput::SanityOutput(const SanityOptions &options, const std::vector<std::
     if (options.bonsai_output_mode)
     {
         // Bonsai output mode ignores -e, -gz and -npy: float32 per-cell matrices, float64 gene vectors.
-        add_field(OutputField::LogFoldChange, FileFormat::Float32Npy, "", num_cells);
-        add_field(OutputField::LogFoldChangeError, FileFormat::Float32Npy, "", num_cells);
+        // The file names are fixed; --ltq-estimate chooses whether delta/d_delta hold the measurement
+        // estimates (the default here) or the posterior estimates.
+        if (options.ltq_estimate == LtqEstimate::Measured)
+        {
+            add_field(OutputField::MeasuredLogFoldChange, FileFormat::Float32Npy, "", num_cells, "delta");
+            add_field(OutputField::MeasuredLtqError, FileFormat::Float32Npy, "", num_cells, "d_delta");
+        }
+        else
+        {
+            add_field(OutputField::LogFoldChange, FileFormat::Float32Npy, "", num_cells);
+            add_field(OutputField::LogFoldChangeError, FileFormat::Float32Npy, "", num_cells);
+        }
         add_field(OutputField::MeanLtq, FileFormat::Float64Npy, "", 1);
         add_field(OutputField::GeneVariance, FileFormat::Float64Npy, "", 1);
         write_names(out_folder_ + "geneID.txt", gene_names_g);
@@ -220,12 +239,22 @@ SanityOutput::SanityOutput(const SanityOptions &options, const std::vector<std::
         return;
     }
 
-    // -e selects the files; -npy writes them as float64 NPY instead of text, and otherwise -gz
-    // compresses the text tables. The identifier files are always plain text.
+    // --ltq-estimate and -e select the files; -npy writes them as float64 NPY instead of text, and
+    // otherwise -gz compresses the text tables. The identifier files are always plain text.
     const FileFormat numeric_format = options.npy_output ? FileFormat::Float64Npy : FileFormat::Text;
     const std::string suffix = options.gzip_output ? ".gz" : "";
-    add_field(OutputField::Ltq, numeric_format, suffix, num_cells);
-    add_field(OutputField::LtqError, numeric_format, suffix, num_cells);
+    const bool posterior = options.extended_output || options.ltq_estimate != LtqEstimate::Measured;
+    const bool measured = options.extended_output || options.ltq_estimate != LtqEstimate::Posterior;
+    if (posterior)
+    {
+        add_field(OutputField::Ltq, numeric_format, suffix, num_cells);
+        add_field(OutputField::LtqError, numeric_format, suffix, num_cells);
+    }
+    if (measured)
+    {
+        add_field(OutputField::MeasuredLtq, numeric_format, suffix, num_cells);
+        add_field(OutputField::MeasuredLtqError, numeric_format, suffix, num_cells);
+    }
     if (options.extended_output)
     {
         add_field(OutputField::MeanLtq, numeric_format, suffix, 1);
@@ -234,8 +263,6 @@ SanityOutput::SanityOutput(const SanityOptions &options, const std::vector<std::
         add_field(OutputField::LogFoldChange, numeric_format, suffix, num_cells);
         add_field(OutputField::LogFoldChangeError, numeric_format, suffix, num_cells);
         add_field(OutputField::VarianceLikelihood, numeric_format, suffix, variance_grid_b.size());
-        add_field(OutputField::MeasuredLtq, numeric_format, suffix, num_cells);
-        add_field(OutputField::MeasuredLtqError, numeric_format, suffix, num_cells);
     }
     // Text tables carry the gene and cell names themselves; NPY arrays need them alongside.
     if (options.extended_output || options.npy_output)
@@ -278,12 +305,13 @@ SanityOutput::SanityOutput(const SanityOptions &options, const std::vector<std::
     }
 }
 
-void SanityOutput::add_field(OutputField field, FileFormat format, const std::string &text_suffix, std::size_t num_columns)
+void SanityOutput::add_field(OutputField field, FileFormat format, const std::string &text_suffix, std::size_t num_columns,
+                             const char *file_name)
 {
     FieldFile file;
     file.field = field;
     file.format = format;
-    const std::string path = out_folder_ + field_file_name(field);
+    const std::string path = out_folder_ + (file_name ? file_name : field_file_name(field));
     if (format == FileFormat::Text)
         file.text = std::make_unique<sanity::Writer>(path + ".txt" + text_suffix);
     else

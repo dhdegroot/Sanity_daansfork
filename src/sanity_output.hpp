@@ -29,6 +29,7 @@ enum class OutputField
     MeasuredLtqError,   // 1/sqrt(n_g f*_gc), the measurement error bars (note Eq. 46).
     LogFoldChange,      // delta_gc = x*_gc - mu_g, the log fold change from the mean LTQ.
     LogFoldChangeError, // epsilon_gc, the same error bar as LtqError, as read by Sanity_distance and Sanity_gene_correlation.
+    MeasuredLogFoldChange, // x^m_gc - mu_g, the measurement log fold change; Bonsai output mode only.
     MeanLtq,            // mu_g (note Eq. 33; MARG: Eq. 49).
     MeanLtqError,       // sigma_mu, the standard deviation of mu_g (note Eq. 43; MARG: Eq. 50).
     GeneVariance,       // v_g (note Eq. 25).
@@ -69,7 +70,9 @@ private:
         std::unique_ptr<npy::NpyStreamWriter> npy;
     };
 
-    void add_field(OutputField field, FileFormat format, const std::string &text_suffix, std::size_t num_columns);
+    // Opens the file of `field`; `file_name` overrides the field's own base name (Bonsai output mode).
+    void add_field(OutputField field, FileFormat format, const std::string &text_suffix, std::size_t num_columns,
+                   const char *file_name = nullptr);
 
     std::string out_folder_;
     std::vector<FieldFile> files_;
