@@ -99,13 +99,13 @@ a small error bar. This is not rare: in the real cells with at least 1000 UMIs 5
 41 genes) have $x^m_c > 0$, in the synthetic matrix 49 555 of 4.2 million (1.2 %, in 1284 of 3000 genes). Nor is it
 limited to $v$ at the grid floor: `gene_1117` has 175 counts and $v = 0.69$.
 
-![Prior, Poisson likelihood, posterior and the Gaussian approximation of Eqs. 44/46 for two of the cases above](figures/measured_ltq_example.png)
+![Prior, Poisson likelihood, posterior and the Gaussian approximation of Eqs. 44/46 for the `gene_1117` case above](figures/measured_ltq_example.png)
 
-**Figure 1.** One cell of `ENSG00000004799.7` (real) and of `gene_1117` (synthetic). Middle row: Sanity's prior
+**Figure 1.** The cell of `gene_1117` (synthetic) from the table above. Top panel: Sanity's prior
 $N(\mu, v)$, the Poisson likelihood $e^{n_c x - N_c e^x}$ of the cell's count, the posterior (their product, with
 mode $x^*_c$), and the Gaussian of Eqs. 44/46, which touches the likelihood at $x^*_c$ with the same value, slope and
-curvature (expansion (B)). Bottom row: the same on a log scale; the Gaussian peaks at $x^m_c$, in the region $x > 0$,
-while the true likelihood has collapsed at $\log(n_c/N_c)$. The count distribution of each gene is printed above it.
+curvature (expansion (B)). Bottom panel: the same on a log scale; the Gaussian peaks at $x^m_c$, in the region $x > 0$,
+while the true likelihood has collapsed at $\log(n_c/N_c)$. The gene's count distribution is printed above the panels.
 
 For every zero-count cell, (C) gives $x^m_c = x^*_c - 1$ exactly, with the error bar $1/\sqrt{n f^*_c}$ of Section 2.8.
 
@@ -119,9 +119,9 @@ the downstream posterior ends up:
 - With a wider prior variance $v'$ the downstream mode moves by $\approx v'(n_c - n f^*_c)$ from $x^*_c$ (the linear
   term of (B) dominates while $n f^*_c (x - x^*_c) \ll n_c$), with nothing to stop it before $x^m_c$. The true likelihood
   stops at $\hat x_c = \log(n_c/N_c)$.
-- Treated as data with weight $n f^*_c$, the real example cell of Figure 1 (3 counts in 1159 UMIs) says
+- Treated as data with weight $n f^*_c$, the real example cell of Section 3 (3 counts in 1159 UMIs) says
   "$x = 35 \pm 3.9$": an 11-sigma statement that the gene is $e^{35}$ times the cell's whole mRNA, which the true
-  likelihood never makes; the synthetic one says "$x = 83 \pm 9.8$". Any downstream step that averages measurements with their inverse variances
+  likelihood never makes; the cell of Figure 1 says "$x = 83 \pm 9.8$". Any downstream step that averages measurements with their inverse variances
   (over cells of one type, over genes of a motif) sees these entries as extreme, confidently measured values.
 - The problem is largest exactly where Section 2.8 expected trouble only for zero counts: it is the nonzero counts
   of weakly expressed genes that explode, while zero counts sit quietly at $x^*_c - 1$ with a huge error bar.
@@ -194,7 +194,7 @@ $$
 
 This does not depend on Sanity at all; the Sanity-specific information is then entirely in $\mu$, $v$, $x^*_c$ and
 $\epsilon_c$. Relative to the mode, $x^m_c = x^*_c + \log\big(n_c/(n f^*_c)\big)$, i.e. (C) with $r - 1$ replaced by
-$\log r$: the displacement of the two cells of Figure 1 drops from 45 and 96 to 3.8 and 4.6, and $x^m_c$
+$\log r$: the displacement of the cell of Figure 1 drops from 96 to 4.6 (for the real cell of Section 3 from 45 to 3.8), and $x^m_c$
 becomes $\log(n_c/N_c)$, the peak of the orange curve.
 
 (E) is the Laplace approximation of a likelihood that is not Gaussian in $x$: under a flat prior in $x$ the posterior
