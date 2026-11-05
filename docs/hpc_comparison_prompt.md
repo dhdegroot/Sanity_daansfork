@@ -1,26 +1,34 @@
-# Prompt for the HPC agent: compare Sanity `clean-up` with `new-direct-ltqs` on simulated data
+# Prompt for the HPC agent: compare three versions of Sanity on simulated data
 
-You are working on the CBE cluster (Slurm). Your task is to compare two branches of the Sanity repository
+You are working on the CBE cluster (Slurm). Your task is to compare three versions of the Sanity repository
 (https://github.com/jmbreda/Sanity, or the clone I point you to) on simulated single-cell count matrices with known
-ground truth, and to write a short report. Do not change either branch. Ask me before running anything on the data.
+ground truth, and to write a short report. Do not change the code. Ask me before running anything on the data.
+
+The three versions:
+
+| version | checkout | command-line difference | what its LTQ files hold |
+|:--|:--|:--|:--|
+| **A** `clean-up` | branch `clean-up` | none | the previous implementation: `mu_g + delta_gc` with the SI 2021 error bars |
+| **B** `new-direct-ltqs`, posterior-mode | branch `new-direct-ltqs` | default (`--measured-expansion posterior-mode`) | posterior LTQs `x*_gc` with posterior error bars, and measurement LTQs `x^m_gc` from the note's Eq. 44/46 (expansion around the posterior mode) |
+| **C** `new-direct-ltqs`, likelihood-maximum | same binary as B | `--measured-expansion likelihood-maximum` | the same posterior LTQs; measurement LTQs `log(n_gc/N_c) ± 1/sqrt(n_gc)` for nonzero counts, Eq. 44/46 for zero counts |
+
+B and C differ only in the two `measured_ltq*` files. Background: `docs/output_logic.md` lists the formula behind
+every output file, `docs/measured_ltq_linearisation.md` explains why Eq. 44 fails for surprising counts and why C
+exists, `docs/measured_expansion_plan.md` describes the option.
 
 ## 1 Build both branches and record the commits
 
-Clone the repository twice (or use two worktrees), one per branch:
-
-- `clean-up`: the previous implementation (log fold changes, SI 2021 formulas).
-- `new-direct-ltqs`: the new implementation (direct LTQs with posterior error bars, Section 2 of E. van Nimwegen's
-  note "Getting proper error-bars in Sanity"). Its `docs/output_logic.md` lists the formula behind every output file,
-  and `docs/measured_ltq_linearisation.md` explains a known property of the measurement LTQs.
-
-Build each with GCC and OpenMP (`module load` a recent GCC first; Apple clang is not an issue here):
+Clone the repository twice (or use two worktrees), one per branch. Build each with GCC and OpenMP (`module load` a
+recent GCC first):
 
 ```bash
 cd src && make Sanity
 ```
 
 The binary is `bin/Sanity`. Record `git rev-parse HEAD` of each checkout and `bin/Sanity -v` in the report.
-Run `python3 tests/compare_section2.py` in the `new-direct-ltqs` checkout once (needs NumPy); it must print PASSED.
+In the `new-direct-ltqs` checkout, check that `bin/Sanity -h` lists `--measured-expansion`; if it does not, the
+option has not been merged yet: stop and tell me. Then run `python3 tests/compare_section2.py` there once (needs
+NumPy); it must print PASSED.
 
 ## 2 Ask me before running
 
@@ -36,22 +44,27 @@ Before any run, ask me for:
 
 ## 3 How Sanity is run
 
-Both branches have the same command line. Run every dataset with every variance method and full-precision output:
+All versions take the same command line; C adds one option. Run every dataset with every variance method and
+full-precision output:
 
 ```bash
+# A and B
 bin/Sanity -f <counts.tsv> -d <out_dir>/ -n <threads> -v_m <METHOD> -e 1 -npy
+# C
+bin/Sanity -f <counts.tsv> -d <out_dir>/ -n <threads> -v_m <METHOD> -e 1 -npy --measured-expansion likelihood-maximum
 ```
 
-with `METHOD` in `MAP` (the default), `MLE`, `EAP`, `MARG`. Each run goes in its own output directory. Submit the runs as
-Slurm jobs (one job per dataset × branch × method is fine, or a job array), with `--cpus-per-task` equal to `-n`.
-Record for every run the wall time and peak memory from `sacct` (`Elapsed`, `MaxRSS`) and from `/usr/bin/time -v`
-if available. MARG is the slowest; on `clean-up` it is several times slower than on `new-direct-ltqs`.
+with `METHOD` in `MAP` (the default), `MLE`, `EAP`, `MARG`. Each run goes in its own output directory. That is
+3 versions × 4 methods per dataset; submit them as Slurm jobs (one job per dataset × version × method, or a job
+array), with `--cpus-per-task` equal to `-n`. Record for every run the wall time and peak memory from `sacct`
+(`Elapsed`, `MaxRSS`) and from `/usr/bin/time -v` if available. MARG is the slowest; on `clean-up` it is several
+times slower than on `new-direct-ltqs`. B and C cost the same (the fit is identical; only the second pass differs).
 
 Genes with zero total count are dropped by Sanity; `geneID.txt` lists the genes that were kept, in output order.
 Every numerical output is float64 NPY (`numpy.load(path, allow_pickle=False)`), one row per gene in the order of
 `geneID.txt`, matrix columns in the order of `cellID.txt`. Error bars are standard deviations, not variances.
 
-### Output of `clean-up` (`-e 1 -npy`)
+### Output of A (`clean-up`, `-e 1 -npy`)
 
 | file | shape | content |
 |:--|:--|:--|
@@ -65,14 +78,14 @@ Every numerical output is float64 NPY (`numpy.load(path, allow_pickle=False)`), 
 | `likelihood.npy` | genes × bins | posterior over the variance grid |
 | `likelihood_grid.npy` | bins × 1 | the variance grid (160 points from 0.001 to 50, log-spaced) |
 
-### Output of `new-direct-ltqs` (`-e 1 -npy`)
+### Output of B and C (`new-direct-ltqs`, `-e 1 -npy`)
 
 | file | shape | content |
 |:--|:--|:--|
 | `log_transcription_quotients.npy` | genes × cells | posterior LTQ `x*_gc` (MARG: averaged over the grid) |
 | `ltq_error_bars.npy` | genes × cells | posterior error bar `eps_gc` (includes the uncertainty on `mu_g`) |
-| `measured_ltq.npy` | genes × cells | measurement LTQ `x^m_gc` (prior divided out, note Eq. 44) |
-| `measured_ltq_error_bars.npy` | genes × cells | `1/sqrt(n_g f*_gc)` (note Eq. 46); can be very large |
+| `measured_ltq.npy` | genes × cells | B: `x^m_gc` of Eq. 44 for every cell. C: `log(n_gc/N_c)` where `n_gc > 0`, Eq. 44 where `n_gc = 0` |
+| `measured_ltq_error_bars.npy` | genes × cells | B: `1/sqrt(n_g f*_gc)` (Eq. 46), can be very large. C: `1/sqrt(n_gc)` where `n_gc > 0`, Eq. 46 where `n_gc = 0` |
 | `delta.npy` | genes × cells | `x*_gc - mu_g` |
 | `d_delta.npy` | genes × cells | identical to `ltq_error_bars.npy` |
 | `mu.npy` | genes × 1 | `mu_g = mean over cells of x*_gc` |
@@ -80,48 +93,59 @@ Every numerical output is float64 NPY (`numpy.load(path, allow_pickle=False)`), 
 | `variance.npy` | genes × 1 | the selected `v_g` (MARG: posterior mean) |
 | `likelihood.npy`, `likelihood_grid.npy` | as above | as above |
 
-`sanity_command.txt` in each output directory records the version, method, `# LTQ estimate:` (new branch only) and
-the command line; copy it into the report.
+`sanity_command.txt` in each output directory records the version, method, `# LTQ estimate:` and
+`# Measured expansion:` (new branch only) and the command line; copy it into the report. For MARG, the zero-count
+entries of C's measured files are Eq. 44 averaged over the grid, as in B.
 
-## 4 Compare each branch with the ground truth
+## 4 Compare each version with the ground truth
 
-For each dataset, branch and method:
+For each dataset, version and method:
 
 - **`v_g`**: the estimate versus the true `v_g`. Report the bias of `log(v_est / v_true)`, its spread, and the fraction
   of genes within a factor 2, split by expression level (bin the genes by their total count `n_g`, e.g. decades).
-  Also note how many genes sit at the grid edges (0.001 or 50).
-- **`mu_g`**: estimate minus the true mean (`mu.npy`), by expression level. Note that `clean-up` uses `psi(n_g) - q_g`
-  and `new-direct-ltqs` uses the mean of `x*_gc`, so a shift of `log(n_g) - psi(n_g)` (about `1/(2 n_g)`) between the
-  branches is expected; compare both with the truth.
-- **LTQs**: on `new-direct-ltqs`, `x*_gc` (`log_transcription_quotients.npy`) and `x^m_gc` (`measured_ltq.npy`); on
-  `clean-up`, `mu_g + delta_gc` (which is `log_transcription_quotients.npy` there). Against the true `x_gc`: RMSE and
-  bias, by expression level and separately for cells with zero and with nonzero counts.
-- **Error-bar calibration**: for each LTQ estimate with its error bar (`ltq_error_bars.npy`,
-  `measured_ltq_error_bars.npy`, and `clean-up`'s `ltq_error_bars.npy`), compute `z = (estimate - truth) / error bar`.
-  Report the fraction of entries with `|z| < 1`, `< 2`, `< 3` (expected 0.683, 0.954, 0.997 if calibrated) and the
-  distribution of `z` (histogram or quantiles), split by expression level and by zero versus nonzero counts. Do the same
-  for `mu_g` with `d_mu.npy` and, if the truth has it, for the gene variance.
-- The measurement LTQs `x^m_gc` of the new branch are expected to be far from the truth for cells whose count greatly
-  exceeds the expected count (`x^m - x* = n_gc/(n_g f*_gc) - 1`); quantify how many entries have `|x^m - x*| > 5` and
-  whether their error bars cover the truth. Treat this as a finding, not an error.
+  Also note how many genes sit at the grid edges (0.001 or 50). B and C are identical here; report once.
+- **`mu_g`**: estimate minus the true mean (`mu.npy`), by expression level. Note that A uses `psi(n_g) - q_g` and
+  B/C use the mean of `x*_gc`, so a shift of `log(n_g) - psi(n_g)` (about `1/(2 n_g)`) between the branches is
+  expected; compare both with the truth.
+- **LTQs**, four estimates: A's `mu_g + delta_gc` (its `log_transcription_quotients.npy`); B's `x*_gc`
+  (`log_transcription_quotients.npy`, identical in C); B's `x^m_gc` (`measured_ltq.npy`, Eq. 44); C's `x^m_gc`
+  (`measured_ltq.npy`, likelihood maximum). Against the true `x_gc`: RMSE and bias, by expression level and
+  separately for cells with zero and with nonzero counts; for the nonzero counts also by the count itself
+  (`n_gc` = 1, 2, 3–4, 5–9, ≥ 10).
+- **Error-bar calibration**: for each of the four estimates with its error bar (A's `ltq_error_bars.npy`, B's
+  `ltq_error_bars.npy`, B's `measured_ltq_error_bars.npy`, C's `measured_ltq_error_bars.npy`), compute
+  `z = (estimate - truth) / error bar`. Report the fraction of entries with `|z| < 1`, `< 2`, `< 3` (expected
+  0.683, 0.954, 0.997 if calibrated) and the distribution of `z` (histogram or quantiles), split by expression level,
+  by zero versus nonzero counts, and for the nonzero counts by `n_gc` as above. Do the same for `mu_g` with `d_mu.npy`
+  and, if the truth has it, for the gene variance.
+- **What to expect for the measurement LTQs.** B's `x^m_gc` is expected to be far from the truth for cells whose count
+  greatly exceeds the expected count (`x^m - x* = n_gc/(n_g f*_gc) - 1`): quantify how many entries have
+  `|x^m - x*| > 1`, `> 5`, how many have `x^m > 0` (a fraction above 1, impossible), and whether their error bars
+  cover the truth. C's `x^m_gc` is `≤ 0` for every nonzero count by construction; its Gaussian is the Laplace
+  approximation of a skewed likelihood, so some under-coverage at `n_gc = 1` and `2` (of order 10 %) is expected and
+  should shrink with `n_gc`. Treat all of this as findings, not errors.
 
-## 5 Compare the two branches with each other
+## 5 Compare the versions with each other
 
 For the same dataset and method:
 
-- `variance.npy` should be identical for MAP, MLE and EAP (the selected grid point is the same by construction) and
-  equal to about 1e-9 for MARG; `likelihood.npy` should agree to about 1e-8. Report the number of genes where the
-  selected `v_g` differs, if any.
-- `delta.npy` should agree to about 1e-8.
-- `mu.npy` differs by `log(n_g) - psi(n_g)`; `ltq_error_bars.npy` and `d_delta.npy` differ on purpose (new posterior
-  error bars versus the old ones, and no asymmetric zero-count bar any more). Show the ratio of new to old error bars by
-  expression level and by zero versus nonzero counts.
-- Runtime and peak memory of both branches per method.
+- **A versus B.** `variance.npy` should be identical for MAP, MLE and EAP (the selected grid point is the same by
+  construction) and equal to about 1e-9 for MARG; `likelihood.npy` should agree to about 1e-8. Report the number of
+  genes where the selected `v_g` differs, if any. `delta.npy` should agree to about 1e-8. `mu.npy` differs by
+  `log(n_g) - psi(n_g)`; `ltq_error_bars.npy` and `d_delta.npy` differ on purpose (new posterior error bars versus
+  the old ones, and no asymmetric zero-count bar any more). Show the ratio of new to old error bars by expression
+  level and by zero versus nonzero counts.
+- **B versus C.** Every file except the two `measured_ltq*` files must be bit-identical (`numpy.array_equal`); so
+  must the zero-count entries of the two measured files. Report any difference as a bug. For the nonzero entries show
+  the distribution of `x^m(C) - x^m(B)` and of the ratio of the error bars, by the expected count at the gene mean
+  `N_c exp(mu_g)` (bins below 0.01, 0.01–0.1, 0.1–1, above 1) and by `n_gc`.
+- Runtime and peak memory of the three versions per method.
 
 ## 6 Report
 
 Write a short report (Markdown, with tables and figures as PNG files) with: the commit hashes and build details, the
-datasets and which truth they contain, the comparisons of Sections 4 and 5, and a clear list of what you could not
+datasets and which truth they contain, the comparisons of Sections 4 and 5, a recommendation on which of B and C
+should become the default for the measurement LTQs with the evidence for it, and a clear list of what you could not
 check (missing truth quantities, failed jobs, datasets you skipped) and why. Put the scripts you used next to it so
-the analysis can be rerun. Use only `numpy`, `matplotlib` and the standard library unless I say otherwise, and load the
-large matrices with `mmap_mode="r"` when memory is tight.
+the analysis can be rerun. Use only `numpy`, `matplotlib` and the standard library unless I say otherwise, and load
+the large matrices with `mmap_mode="r"` when memory is tight.
