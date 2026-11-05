@@ -61,7 +61,12 @@ bisection with its own Lambert W iteration, L(v) comes from Eqs. 36–38, the
 estimates at the selected grid point from Eqs. 32, 33, 39, 41, 43, 44 and 46,
 and the MARG averages from Eqs. 47–50. The script compares the `-e 1 -npy`
 output of all four `-v_m` methods with these, on a synthetic 24 x 60 matrix or
-on a TSV given with `--counts`, and checks the identities the note relies on
+on a TSV given with `--counts`, once per value of `--measured-expansion`
+(`posterior-mode`: Eqs. 44 and 46 for every cell; `likelihood-maximum`:
+`log(n_gc/N_c)` with error bar `1/sqrt(n_gc)` for nonzero counts, Eqs. 44 and
+46 for zero counts). It also checks that the two expansions give bit-identical
+files except for `measured_ltq*`, whose zero-count entries must be identical
+too. Finally it checks the identities the note relies on
 (`sum_c f*_c = 1`, `<x*> = log(n_g) - q_g`, Eqs. 40, 41 and 43 against the
 numerically inverted precision matrix of Eq. 35, and the constant offset
 between Eqs. 36–38 and the previous likelihood, see
