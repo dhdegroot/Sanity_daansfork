@@ -31,6 +31,7 @@ struct SanityOptions
     bool npy_output = false;                // -npy: write the numerical output files as NPY; overrides -gz.
     bool bonsai_output_mode = false;        // --bonsai-output-mode: the Bonsai file set; overrides -e, -gz and -npy.
     LtqEstimate ltq_estimate = LtqEstimate::Posterior; // --ltq-estimate: what the default files hold; Bonsai mode defaults to Measured.
+    MeasuredExpansion measured_expansion = MeasuredExpansion::PosteriorMode; // --measured-expansion: the formula of the measurement LTQs (gene_fit.hpp).
 };
 
 enum class ParseResult
@@ -51,5 +52,8 @@ const char *variance_method_name(VarianceMethod variance_method);
 
 // The name of an LTQ estimate as written to sanity_command.txt ("posterior", "measured" or "both").
 const char *ltq_estimate_name(LtqEstimate ltq_estimate);
+
+// The name of a measured expansion as written to sanity_command.txt ("posterior-mode" or "likelihood-maximum").
+const char *measured_expansion_name(MeasuredExpansion measured_expansion);
 
 #endif
