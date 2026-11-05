@@ -6,7 +6,10 @@ below are its Section 2. "SI" is the Supplementary Information of Breda, Zavolan
 For every gene of a small count matrix this script solves q_g at every grid point by bisection (with its own Lambert W
 iteration), computes L(v) from Eqs. 36-38 with the actual mean <x*>, the estimates at the selected grid point (Eqs. 32,
 33, 39, 41, 43, 44, 46) and the MARG averages (Eqs. 47-50), and compares them with the -e 1 -npy output of the Sanity
-binary for all four variance methods. It also checks the identities the note relies on:
+binary for all four variance methods and both values of --measured-expansion (posterior-mode: Eqs. 44 and 46 for every
+cell; likelihood-maximum: log(n_c/N_c) +- 1/sqrt(n_c) for nonzero counts, Eqs. 44 and 46 for zero counts), checking
+that the two expansions differ only in the nonzero entries of the measured files. It also checks the identities the
+note relies on:
 sum_c f*_c = 1, <x*> = log(n) - q, Eq. 41 against the diagonal of the inverted precision matrix of Eq. 35, Eq. 40 and
 Eq. 43 against the full inverse, and that Eqs. 36-38 equal the SI's L(v) up to a constant over the grid.
 
@@ -101,7 +104,13 @@ def estimates_at(counts, n, v, log_N, f):
     sigma_mu_sq = (mean_v / C) / (1 - mean_v / v)     # Eq. 43
     x_m = x + (x - mu) / (n * f * v)                  # Eq. 44
     x_m_err_sq = 1 / (n * f)                          # Eq. 46
-    return dict(x=x, eps_sq=eps_sq, x_m=x_m, x_m_err_sq=x_m_err_sq, mu=mu, sigma_mu_sq=sigma_mu_sq, v_c=v_c)
+    # --measured-expansion likelihood-maximum: for a nonzero count the Poisson log-likelihood n_c x - N_c e^x is
+    # expanded around its own maximum log(n_c/N_c), where the curvature is -n_c; zero counts keep Eqs. 44 and 46.
+    nonzero = counts > 0
+    x_m_lm = np.where(nonzero, np.log(np.where(nonzero, counts, 1.0)) - log_N, x_m)
+    x_m_lm_err_sq = np.where(nonzero, 1 / np.where(nonzero, counts, 1.0), x_m_err_sq)
+    return dict(x=x, eps_sq=eps_sq, x_m=x_m, x_m_err_sq=x_m_err_sq, x_m_lm=x_m_lm, x_m_lm_err_sq=x_m_lm_err_sq,
+                mu=mu, sigma_mu_sq=sigma_mu_sq, v_c=v_c)
 
 
 def precision_matrix(n, v, f):
@@ -137,11 +146,13 @@ def fit_gene(counts, log_N, sum_N, grid, method):
         eps_sq = sum(P * (e["eps_sq"] + (e["x"] - x) ** 2) for P, e in zip(P_k, per_bin))
         x_m = sum(P * e["x_m"] for P, e in zip(P_k, per_bin))
         x_m_err_sq = sum(P * (e["x_m_err_sq"] + (e["x_m"] - x_m) ** 2) for P, e in zip(P_k, per_bin))
+        x_m_lm = sum(P * e["x_m_lm"] for P, e in zip(P_k, per_bin))
+        x_m_lm_err_sq = sum(P * (e["x_m_lm_err_sq"] + (e["x_m_lm"] - x_m_lm) ** 2) for P, e in zip(P_k, per_bin))
         mu = (P_k * mu_k).sum()
         sigma_mu_sq = (P_k * (sig_k + (mu_k - mu) ** 2)).sum()
         v_report = (P_k * grid).sum()
-        return dict(x=x, eps_sq=eps_sq, x_m=x_m, x_m_err_sq=x_m_err_sq, mu=mu, sigma_mu_sq=sigma_mu_sq,
-                    v=v_report, P=P_k, q_k=q_k, L_k=L_k)
+        return dict(x=x, eps_sq=eps_sq, x_m=x_m, x_m_err_sq=x_m_err_sq, x_m_lm=x_m_lm, x_m_lm_err_sq=x_m_lm_err_sq,
+                    mu=mu, sigma_mu_sq=sigma_mu_sq, v=v_report, P=P_k, q_k=q_k, L_k=L_k)
     if method == "MLE":
         k = int(np.argmax(L_k))
     elif method == "MAP":
@@ -274,41 +285,60 @@ def main():
         "delta": ("delta", "value"),
         "d_delta": ("eps_sq", "sqrt"),
     }
+    # --measured-expansion likelihood-maximum only changes the two measured files.
+    quantities_lm = dict(quantities, measured_ltq=("x_m_lm", "value"), measured_ltq_error_bars=("x_m_lm_err_sq", "sqrt"))
+    keys = sorted({key for key, _ in quantities.values()} | {key for key, _ in quantities_lm.values()})
     for method in ["MAP", "MLE", "EAP", "MARG"]:
-        out = directory / f"out_{method}"
-        command = [str(args.sanity), "-f", str(matrix), "-d", str(out), "-v_m", method, "-e", "1", "-npy",
-                   "-n", "2", "-nbin", str(nbin), "-vmin", str(vmin), "-vmax", str(vmax)]
-        process = subprocess.run(command, capture_output=True, text=True)
-        if process.returncode:
-            raise RuntimeError(process.stdout + process.stderr)
-        keys = sorted({key for key, _ in quantities.values()})
         reference = {key: [] for key in keys}
         for g in range(counts.shape[0]):
             est = fit_gene(counts[g], log_N, sum_N, grid, method)
             est["delta"] = est["x"] - est["mu"]
             for key in keys:
                 reference[key].append(est[key])
-        print(f"Method {method}: Sanity versus the reference ({counts.shape[0]} genes)")
-        for file_name, (key, kind) in quantities.items():
-            path = out / f"{file_name}.npy"
-            if not path.exists():
-                print(f"  (no {file_name}.npy)")
-                continue
-            sanity = np.load(path)
-            expected = np.array(reference[key])
-            if kind == "sqrt":
-                expected = np.sqrt(expected)
-            expected = expected.reshape(sanity.shape)
-            # x^m divides by n f* v, which amplifies the difference between the two solvers of q; measure it relative.
-            scale = 1.0 + np.abs(expected)
-            report(file_name + " max |diff|/(1+|ref|)", (np.abs(sanity - expected) / scale).max(), 1e-7, method)
+        outputs = {}
+        for expansion, files in [("posterior-mode", quantities), ("likelihood-maximum", quantities_lm)]:
+            out = directory / f"out_{method}_{expansion}"
+            outputs[expansion] = out
+            command = [str(args.sanity), "-f", str(matrix), "-d", str(out), "-v_m", method, "-e", "1", "-npy",
+                       "-n", "2", "-nbin", str(nbin), "-vmin", str(vmin), "-vmax", str(vmax),
+                       "--measured-expansion", expansion]
+            process = subprocess.run(command, capture_output=True, text=True)
+            if process.returncode:
+                raise RuntimeError(process.stdout + process.stderr)
+            print(f"Method {method}, --measured-expansion {expansion}: Sanity versus the reference ({counts.shape[0]} genes)")
+            for file_name, (key, kind) in files.items():
+                path = out / f"{file_name}.npy"
+                if not path.exists():
+                    print(f"  (no {file_name}.npy)")
+                    continue
+                sanity = np.load(path)
+                expected = np.array(reference[key])
+                if kind == "sqrt":
+                    expected = np.sqrt(expected)
+                expected = expected.reshape(sanity.shape)
+                # x^m divides by n f* v, which amplifies the difference between the two solvers of q; measure it relative.
+                scale = 1.0 + np.abs(expected)
+                report(file_name + " max |diff|/(1+|ref|)", (np.abs(sanity - expected) / scale).max(), 1e-7, method)
+        # The expansion must leave everything else untouched: every other file bit-identical, and the zero-count
+        # entries of the measured files too.
+        print(f"Method {method}: the two expansions")
+        zero = counts == 0
+        for file_name in quantities:
+            a = np.load(outputs["posterior-mode"] / f"{file_name}.npy")
+            b = np.load(outputs["likelihood-maximum"] / f"{file_name}.npy")
+            if file_name.startswith("measured"):
+                differ = float(np.any(a[zero] != b[zero]))
+                report(file_name + " zero-count entries differ", differ, 0.0, method)
+            else:
+                report(file_name + " bit-identical (0 = yes)", float(not np.array_equal(a, b)), 0.0, method)
 
     if failures:
         print(f"FAILED: {len(failures)} checks:")
         for gene, label, value in failures:
             print(f"  {gene}: {label} = {value:.3e}")
     else:
-        print("PASSED: Sanity matches the Section 2 reference for MAP, MLE, EAP and MARG, and the identities hold.")
+        print("PASSED: Sanity matches the Section 2 reference for MAP, MLE, EAP and MARG with both measured expansions, "
+              "and the identities hold.")
     if args.keep:
         print("Outputs kept in", directory)
     else:
