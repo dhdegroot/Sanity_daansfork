@@ -25,8 +25,8 @@ enum class OutputField
 {
     Ltq,                // x*_gc, the posterior log transcription quotients (note Eq. 32; MARG: Eq. 47).
     LtqError,           // epsilon_gc, the posterior error bars on x_gc (note Eq. 41; MARG: Eq. 48).
-    MeasuredLtq,        // x^m_gc, the measurement LTQs with the prior divided out (note Eq. 44).
-    MeasuredLtqError,   // 1/sqrt(n_g f*_gc), the measurement error bars (note Eq. 46).
+    MeasuredLtq,        // x^m_gc, the measurement LTQs: the prior divided out (note Eq. 44), or log(n_gc/N_c) (--measured-expansion).
+    MeasuredLtqError,   // The measurement error bars: 1/sqrt(n_g f*_gc) (note Eq. 46), or 1/sqrt(n_gc).
     LogFoldChange,      // delta_gc = x*_gc - mu_g, the log fold change from the mean LTQ.
     LogFoldChangeError, // epsilon_gc, the same error bar as LtqError, as read by Sanity_distance and Sanity_gene_correlation.
     MeasuredLogFoldChange, // x^m_gc - mu_g, the measurement log fold change; Bonsai output mode only.

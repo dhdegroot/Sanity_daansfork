@@ -79,22 +79,37 @@ static inline double mean_ltq_error_sq_from_sums(const CellSums& sums, double ge
 struct CellErrorBars
 {
     double ltq_error_sq;          // epsilon_gc^2 (note Eq. 41)
-    double measured_ltq;          // x^m_gc (note Eq. 44)
-    double measured_ltq_error_sq; // 1/(n_g f*_gc) (note Eq. 46)
+    double measured_ltq;          // x^m_gc (note Eq. 44, or log(n_gc/N_c))
+    double measured_ltq_error_sq; // 1/(n_g f*_gc) (note Eq. 46), or 1/n_gc
 };
 
 // The error bars and the measurement LTQ of one cell at one v_g, from its fraction f*_gc, its x*_gc, the mean
-// <x*> and the sums of the first pass. expected_count = n_g f*_gc, gene_variance = v_g.
+// <x*> and the sums of the first pass. expected_count = n_g f*_gc, gene_variance = v_g; count = n_gc and
+// log_cell_total = log(N_c) are only used by MeasuredExpansion::LikelihoodMaximum.
+// The measurement LTQ is the Gaussian that the second-order expansion of the Poisson log-likelihood
+// n_gc x - N_c e^x makes of it. Around the posterior mode x*_gc that gives Eqs. 44 and 46 for every cell. Around
+// the likelihood's own maximum log(n_gc/N_c), where the slope vanishes and the curvature is -n_gc, it gives
+// log(n_gc/N_c) with variance 1/n_gc; a zero count has no maximum (the likelihood e^{-N_c e^x} only falls), so it
+// keeps the expansion around x*_gc. See docs/measured_ltq_linearisation.md.
 static inline CellErrorBars cell_error_bars(double expected_count, double ltq, double mean_ltq, double gene_variance,
-                                            const CellSums& sums)
+                                            const CellSums& sums, MeasuredExpansion measured_expansion, double count,
+                                            double log_cell_total)
 {
     const double scaled_expected_count = expected_count * gene_variance;                   // n_g f*_gc v_g
     const double renormalised_variance = gene_variance / (scaled_expected_count + 1.0);    // v_gc (Eq. 39)
     CellErrorBars bars;
     // Eq. 41: v_gc + (1/C) v_gc^2 / (v_g - <v>), with C (v_g - <v>) = v_g sum_shrinkage.
     bars.ltq_error_sq = renormalised_variance + renormalised_variance * renormalised_variance / (gene_variance * sums.sum_shrinkage);
-    bars.measured_ltq = ltq + (ltq - mean_ltq) / scaled_expected_count; // Eq. 44
-    bars.measured_ltq_error_sq = 1.0 / expected_count;                   // Eq. 46
+    if (measured_expansion == MeasuredExpansion::LikelihoodMaximum && count > 0.0)
+    {
+        bars.measured_ltq = std::log(count) - log_cell_total; // log(n_gc / N_c)
+        bars.measured_ltq_error_sq = 1.0 / count;
+    }
+    else
+    {
+        bars.measured_ltq = ltq + (ltq - mean_ltq) / scaled_expected_count; // Eq. 44
+        bars.measured_ltq_error_sq = 1.0 / expected_count;                   // Eq. 46
+    }
     return bars;
 }
 
@@ -230,7 +245,7 @@ static int select_variance_bin(VarianceMethod variance_method, const std::vector
 // 'best' v_g"). Two passes over the cells: x*_gc and the sums (compute_ltqs), then the error bars and x^m_gc.
 static void estimate_at_selected_bin(int selected_bin, const std::vector<double>& umi_counts_c, double gene_total, double log_gene_total,
                                      const std::vector<double>& variance_grid_b, const std::vector<double>& log_cell_totals_c,
-                                     GeneWorkspace& workspace, RowComputation& result)
+                                     MeasuredExpansion measured_expansion, GeneWorkspace& workspace, RowComputation& result)
 {
     const int num_cells = static_cast<int>(umi_counts_c.size());
     const double gene_variance = variance_grid_b[selected_bin];
@@ -243,7 +258,8 @@ static void estimate_at_selected_bin(int selected_bin, const std::vector<double>
     result.mean_ltq_error_sq = mean_ltq_error_sq_from_sums(sums, gene_variance, num_cells); // Eq. 43
     for (int c = 0; c < num_cells; ++c)
     {
-        const CellErrorBars bars = cell_error_bars(gene_total * fractions_c[c], result.ltq_c[c], result.mean_ltq, gene_variance, sums);
+        const CellErrorBars bars = cell_error_bars(gene_total * fractions_c[c], result.ltq_c[c], result.mean_ltq, gene_variance, sums,
+                                                   measured_expansion, umi_counts_c[c], log_cell_totals_c[c]);
         result.ltq_error_sq_c[c] = bars.ltq_error_sq;
         result.measured_ltq_c[c] = bars.measured_ltq;
         result.measured_ltq_error_sq_c[c] = bars.measured_ltq_error_sq;
@@ -255,9 +271,11 @@ static void estimate_at_selected_bin(int selected_bin, const std::vector<double>
 // The averages over the grid are accumulated one grid point at a time with West's weighted update of the mean and
 // the spread, so only the x*_gc of the current grid point are held. x^m_gc and its error bar are averaged in the
 // same way as x*_gc (Eqs. 47, 48 with 1/(n_g f*_gc(v_b)) as the variance at each grid point); the note does not
-// define a marginal x^m_gc.
+// define a marginal x^m_gc. With MeasuredExpansion::LikelihoodMaximum the x^m_gc of a nonzero count does not
+// depend on v_b, and West's update of a constant returns it exactly with zero spread.
 static void marginalise_over_variance(const std::vector<double>& umi_counts_c, double gene_total, double log_gene_total,
                                       const std::vector<double>& variance_grid_b, const std::vector<double>& log_cell_totals_c,
+                                      MeasuredExpansion measured_expansion,
                                       GeneWorkspace& workspace, RowComputation& result)
 {
     const int num_cells = static_cast<int>(umi_counts_c.size());
@@ -292,7 +310,8 @@ static void marginalise_over_variance(const std::vector<double>& umi_counts_c, d
         const double bin_mean_ltq = sums.sum_ltq / num_cells; // mu_g(v_b)
         for (int c = 0; c < num_cells; ++c)
         {
-            const CellErrorBars bars = cell_error_bars(gene_total * fractions_c[c], bin_ltq_c[c], bin_mean_ltq, bin_variance, sums);
+            const CellErrorBars bars = cell_error_bars(gene_total * fractions_c[c], bin_ltq_c[c], bin_mean_ltq, bin_variance, sums,
+                                                       measured_expansion, umi_counts_c[c], log_cell_totals_c[c]);
             const double deviation = bin_ltq_c[c] - ltq_c[c];
             ltq_c[c] += (weight / weight_so_far) * deviation;
             ltq_spread_c[c] += weight * deviation * (bin_ltq_c[c] - ltq_c[c]);
@@ -335,7 +354,7 @@ static void marginalise_over_variance(const std::vector<double>& umi_counts_c, d
 }
 
 RowComputation get_gene_expression_level(const std::vector<double> &umi_counts_c, double gene_total, const std::vector<double> &variance_grid_b,
-                                         VarianceMethod variance_method, const std::vector<double>& log_cell_totals_c,
+                                         VarianceMethod variance_method, MeasuredExpansion measured_expansion, const std::vector<double>& log_cell_totals_c,
                                          double sum_cell_totals, GeneWorkspace& workspace)
 {
     const int num_cells = static_cast<int>(umi_counts_c.size());
@@ -378,13 +397,13 @@ RowComputation get_gene_expression_level(const std::vector<double> &umi_counts_c
     // Stage 2: the reported estimates, either at one grid point or averaged over the grid.
     if (variance_method == VarianceMethod::MARG)
     {
-        marginalise_over_variance(umi_counts_c, gene_total, log_gene_total, variance_grid_b, log_cell_totals_c, workspace, result);
+        marginalise_over_variance(umi_counts_c, gene_total, log_gene_total, variance_grid_b, log_cell_totals_c, measured_expansion, workspace, result);
     }
     else
     {
         // The grid point used depends on the variance method: the maximum likelihood (MLE), the posterior maximum (MAP), or the point closest to the posterior mean of v_g (EAP).
         const int selected_bin = select_variance_bin(variance_method, result.variance_likelihood_b, variance_grid_b, max_likelihood_bin);
-        estimate_at_selected_bin(selected_bin, umi_counts_c, gene_total, log_gene_total, variance_grid_b, log_cell_totals_c, workspace, result);
+        estimate_at_selected_bin(selected_bin, umi_counts_c, gene_total, log_gene_total, variance_grid_b, log_cell_totals_c, measured_expansion, workspace, result);
     }
     return result;
 }

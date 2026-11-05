@@ -87,7 +87,7 @@ int main(int argc, char **argv)
                 }
                 thread_reader->read_into(g, umi_counts_c.data());
                 const RowComputation result = get_gene_expression_level(umi_counts_c, counts.gene_totals_g[g], variance_grid_b,
-                                                                         options.variance_method, log_cell_totals_c, sum_cell_totals, workspace);
+                                                                         options.variance_method, options.measured_expansion, log_cell_totals_c, sum_cell_totals, workspace);
                 prepared = output.prepare_row(result, counts.gene_names_g[g]);
             }
             catch (...) { local_failure = std::current_exception(); }

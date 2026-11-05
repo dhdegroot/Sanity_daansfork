@@ -199,13 +199,20 @@ void write_command_metadata(const SanityOptions &options, int argc, char **argv)
     cmd_file << "# Sanity version: " << SANITY_VERSION << "\n";
     cmd_file << "# Method: " << variance_method_name(options.variance_method) << "\n";
     cmd_file << "# LTQ estimate: " << ltq_estimate_name(options.ltq_estimate) << "\n";
+    cmd_file << "# Measured expansion: " << measured_expansion_name(options.measured_expansion) << "\n";
     if (options.bonsai_output_mode)
+    {
         cmd_file << "# Output mode: bonsai\n"
                     "# Output: Bonsai NPY; delta/d_delta: <f4; mu/variance: <f8; "
-                    "C-order genes x cells; gene vectors: genes x 1; d_delta: standard deviation; "
-                 << (options.ltq_estimate == LtqEstimate::Measured
-                         ? "delta = x^m - mu (measurement LTQ minus mean), d_delta = 1/sqrt(n f*)\n"
-                         : "delta = x* - mu (posterior LTQ minus mean), d_delta = posterior error bar\n");
+                    "C-order genes x cells; gene vectors: genes x 1; d_delta: standard deviation; ";
+        if (options.ltq_estimate != LtqEstimate::Measured)
+            cmd_file << "delta = x* - mu (posterior LTQ minus mean), d_delta = posterior error bar\n";
+        else if (options.measured_expansion == MeasuredExpansion::LikelihoodMaximum)
+            cmd_file << "delta = x^m - mu (measurement LTQ minus mean), x^m = log(n_gc/N_c) and d_delta = 1/sqrt(n_gc) for nonzero counts, "
+                        "x^m = x* - 1 and d_delta = 1/sqrt(n f*) for zero counts\n";
+        else
+            cmd_file << "delta = x^m - mu (measurement LTQ minus mean), d_delta = 1/sqrt(n f*)\n";
+    }
     cmd_file << argv[0];
     for (int i = 1; i < argc; ++i)
         cmd_file << " " << argv[i];

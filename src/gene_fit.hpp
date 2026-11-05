@@ -16,13 +16,24 @@ enum class VarianceMethod
     EAP = 3   // Use the grid point closest to the posterior mean of v_g.
 };
 
+// Where the Poisson log-likelihood of a cell is expanded to second order to get its measurement LTQ x^m_gc and
+// error bar (--measured-expansion). The values index the names returned by measured_expansion_name (sanity_options.hpp).
+enum class MeasuredExpansion
+{
+    PosteriorMode = 0,     // Around the posterior mode x*_gc for every cell: x^m_gc of note Eq. 44, error bar of Eq. 46 (the default).
+    LikelihoodMaximum = 1  // For n_gc > 0 around the likelihood maximum log(n_gc/N_c): x^m_gc = log(n_gc/N_c), error bar 1/sqrt(n_gc);
+                           // zero counts as PosteriorMode (their likelihood has no maximum). See docs/measured_ltq_linearisation.md.
+};
+
 // The results of the fit of one gene: the log transcription quotients (LTQs) x_gc of the gene in every cell.
 struct RowComputation
 {
     std::vector<double> ltq_c;                   // x*_gc, the posterior LTQ of each cell (note Eq. 32; MARG: Eq. 47).
     std::vector<double> ltq_error_sq_c;          // epsilon_gc^2, the posterior variance of x_gc (note Eq. 41; MARG: Eq. 48).
-    std::vector<double> measured_ltq_c;          // x^m_gc, the measurement LTQ, i.e. x*_gc with the prior divided out (note Eq. 44).
-    std::vector<double> measured_ltq_error_sq_c; // 1/(n_g f*_gc), the squared measurement error bar of x^m_gc (note Eq. 46).
+    std::vector<double> measured_ltq_c;          // x^m_gc, the measurement LTQ: x*_gc with the prior divided out (note Eq. 44), or
+                                                 // log(n_gc/N_c) for n_gc > 0 with MeasuredExpansion::LikelihoodMaximum.
+    std::vector<double> measured_ltq_error_sq_c; // The squared measurement error bar of x^m_gc: 1/(n_g f*_gc) (note Eq. 46), or
+                                                 // 1/n_gc for n_gc > 0 with MeasuredExpansion::LikelihoodMaximum.
     double mean_ltq;                             // mu_g = <x*_g>, the mean LTQ of the gene over the cells (note Eq. 33; MARG: Eq. 49).
     double mean_ltq_error_sq;                    // sigma_mu^2, the variance of mu_g (note Eq. 43; MARG: Eq. 50).
     double gene_variance;                        // v_g, the prior variance of the LTQs across cells (note Eq. 25).
@@ -49,8 +60,9 @@ struct GeneWorkspace
 // umi_counts_c = n_gc, the counts of this gene in each cell (SI Eq. 13); gene_total = n_g, their sum (SI Eq. 15).
 // log_cell_totals_c = log(N_c), the log of the total counts of each cell (SI Eq. 9); sum_cell_totals = sum_c N_c.
 // variance_grid_b = v_b, the candidate values of the gene variance (SI Section S1.1.4).
+// measured_expansion chooses the formula of the measurement LTQs; nothing else depends on it.
 RowComputation get_gene_expression_level(const std::vector<double> &umi_counts_c, double gene_total, const std::vector<double> &variance_grid_b,
-                                         VarianceMethod variance_method, const std::vector<double>& log_cell_totals_c,
-                                         double sum_cell_totals, GeneWorkspace& workspace);
+                                         VarianceMethod variance_method, MeasuredExpansion measured_expansion,
+                                         const std::vector<double>& log_cell_totals_c, double sum_cell_totals, GeneWorkspace& workspace);
 
 #endif
