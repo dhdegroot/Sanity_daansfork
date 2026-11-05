@@ -65,17 +65,47 @@ of weakly expressed genes, small cells and small $v$, i.e. the bulk of a UMI mat
 
 ## 3 Numbers
 
-`tests/count_table.tsv` (283 genes, 498 cells), MAP:
+`tests/count_table.tsv` (283 genes, 498 cells, cell sizes $N_c$ from 1 to 3590 UMIs with median 47) and a synthetic
+matrix of 3000 genes × 3000 cells (Poisson counts from log-normal LTQs, $N_c$ from 2405 to $3.4 \cdot 10^6$ with median
+20 546), MAP: 1.3 % and 1.2 % of all entries have $\lvert x^m_c - x^*_c \rvert > 5$. The most extreme entries sit in
+cells with a handful of UMIs (the largest, $x^m_c = 11\,825$, is a single count in a cell with 3 UMIs), but the effect
+does not need small cells. What matters is how rare the gene is in the cell, $\lambda_c = N_c e^\mu$, and a gene seen a
+handful of times in thousands of cells has $\lambda_c \sim 10^{-3}$ to $10^{-2}$ in a cell of 10 000 UMIs too.
+Nonzero entries by cell size:
 
-| | |
-|:--|:--|
-| entries with $\lvert x^m_c - x^*_c\rvert > 5$ | 1870 of 140 934 (1.3 %), in 247 genes, at all $v$ from $10^{-3}$ to $5$ |
-| largest | gene `ENSG00000006047.12`: $n = 4$, $v = 0.001$, cell with $n_c = 1$ and $N_c = 3$ |
-| | $x^*_c = -10.478$, $\langle x^* \rangle = -10.479$, $n f^*_c = 8.4 \cdot 10^{-5}$ |
-| | $x^m_c = 11\,825$ with error bar $1/\sqrt{n f^*_c} = 109$; the true $\hat x_c = \log(1/3) = -1.1$ |
+| $N_c$ | data | nonzero entries | $x^m - x^* > 1$ | $> 5$ | $> 100$ | largest |
+|:--|:--|--:|--:|--:|--:|--:|
+| 100–1000 | real | 8 153 | 18.5 % | 5.6 % | 0.23 % | 1124 |
+| 1000–3000 | real | 5 892 | 9.3 % | 2.3 % | 0.02 % | 133 |
+| 3000–10 000 | synthetic | 377 049 | 13.1 % | 3.5 % | 0.26 % | 1106 |
+| 10 000–30 000 | synthetic | 2 482 586 | 10.3 % | 2.8 % | 0.13 % | 1116 |
+| $> 30\,000$ | synthetic | 1 386 275 | 8.3 % | 2.0 % | 0.02 % | 307 |
 
-Synthetic matrix of 3000 genes × 3000 cells (Poisson counts from log-normal LTQs): 1.2 % of entries with
-$\lvert x^m_c - x^*_c\rvert > 5$, largest $1116$.
+Typical bad entries in cells of realistic size (MAP; $\lambda_c$ is the count expected at the gene mean):
+
+| | real: `ENSG00000004799.7` | synthetic: `gene_214` | synthetic: `gene_2352` | synthetic: `gene_1117` |
+|:--|--:|--:|--:|--:|
+| gene: total count $n$, zeros | 8, 98.8 % | 7, 99.8 % | 30, 99 % | 175, 95 % |
+| selected $v$ | 0.001 | 0.001 | 0.001 | 0.69 |
+| cell size $N_c$, count $n_c$ | 1159, 3 | 10 460, 1 | 9216, 2 | 2405, 1 |
+| $\lambda_c$ | 0.065 | 0.0009 | 0.0034 | 0.0052 |
+| posterior mode $x^*_c$ | $-9.8$ | $-16.3$ | $-14.8$ | $-12.4$ |
+| Eq. 44/46: $x^m_c \pm \epsilon^m_c$ | $+35.1 \pm 3.9$ | $+1100 \pm 33$ | $+575 \pm 17$ | $+83 \pm 10$ |
+| likelihood peak $\log(n_c / N_c)$ | $-6.0$ | $-9.3$ | $-8.4$ | $-7.8$ |
+| $(x^m_c - x^*_c)/\epsilon^m_c$ | 11.5 | 33 | 34 | 9.7 |
+
+All four measurement LTQs are positive, i.e. they claim that the gene makes up more than all of the cell's mRNA, with
+a small error bar. This is not rare: in the real cells with at least 1000 UMIs 57 of 6301 nonzero entries (0.9 %, in
+41 genes) have $x^m_c > 0$, in the synthetic matrix 49 555 of 4.2 million (1.2 %, in 1284 of 3000 genes). Nor is it
+limited to $v$ at the grid floor: `gene_1117` has 175 counts and $v = 0.69$.
+
+![Prior, Poisson likelihood, posterior and the Gaussian approximation of Eqs. 44/46 for two of the cases above](figures/measured_ltq_example.png)
+
+**Figure 1.** One cell of `ENSG00000004799.7` (real) and of `gene_1117` (synthetic). Middle row: Sanity's prior
+$N(\mu, v)$, the Poisson likelihood $e^{n_c x - N_c e^x}$ of the cell's count, the posterior (their product, with
+mode $x^*_c$), and the Gaussian of Eqs. 44/46, which touches the likelihood at $x^*_c$ with the same value, slope and
+curvature (expansion (B)). Bottom row: the same on a log scale; the Gaussian peaks at $x^m_c$, in the region $x > 0$,
+while the true likelihood has collapsed at $\log(n_c/N_c)$. The count distribution of each gene is printed above it.
 
 For every zero-count cell, (C) gives $x^m_c = x^*_c - 1$ exactly, with the error bar $1/\sqrt{n f^*_c}$ of Section 2.8.
 
@@ -89,8 +119,9 @@ the downstream posterior ends up:
 - With a wider prior variance $v'$ the downstream mode moves by $\approx v'(n_c - n f^*_c)$ from $x^*_c$ (the linear
   term of (B) dominates while $n f^*_c (x - x^*_c) \ll n_c$), with nothing to stop it before $x^m_c$. The true likelihood
   stops at $\hat x_c = \log(n_c/N_c)$.
-- Treated as data with weight $n f^*_c$, the example cell says "$x = 11\,825 \pm 109$": a 100-sigma statement that
-  the true likelihood never makes. Any downstream step that averages measurements with their inverse variances
+- Treated as data with weight $n f^*_c$, the real example cell of Figure 1 (3 counts in 1159 UMIs) says
+  "$x = 35 \pm 3.9$": an 11-sigma statement that the gene is $e^{35}$ times the cell's whole mRNA, which the true
+  likelihood never makes; the synthetic one says "$x = 83 \pm 9.8$". Any downstream step that averages measurements with their inverse variances
   (over cells of one type, over genes of a motif) sees these entries as extreme, confidently measured values.
 - The problem is largest exactly where Section 2.8 expected trouble only for zero counts: it is the nonzero counts
   of weakly expressed genes that explode, while zero counts sit quietly at $x^*_c - 1$ with a huge error bar.
@@ -130,7 +161,8 @@ Per gene, the driver is the mean count per cell $n/C$ (synthetic 3000 × 3000 ma
 - **Sparse genes** ($n/C \lesssim 0.3$) are bad in every nonzero entry: tens to a few hundred counts in total, more than
   85 % zeros, $v$ at the grid floor. There $x^*_c \approx \mu$, so $n f^*_c \approx \lambda_c \ll 1$ and every single count
   is a surprise by the factor $1/\lambda_c$. The z-score of the measurement, $(x^m_c - x^*_c)/\epsilon^m_c =
-  (n_c - n f^*_c)/\sqrt{n f^*_c}$, reaches 109 (real) and 34 (synthetic).
+  (n_c - n f^*_c)/\sqrt{n f^*_c}$, reaches 34 in the synthetic data and 11.5 in the
+  real cells with at least 1000 UMIs (109 in a real cell of 3 UMIs).
 - **Well-expressed genes** ($n/C \gtrsim 3$) are fine in the synthetic data: no entry above 5.
 - **In between** it is a mixture, and in real data the mixture is wider because cell sizes are uneven. In the 283 × 498
   test matrix ($N_c$ from 1 to 3590, median 47) genes with thousands of counts and $n/C$ up to 12 still have
@@ -162,7 +194,8 @@ $$
 
 This does not depend on Sanity at all; the Sanity-specific information is then entirely in $\mu$, $v$, $x^*_c$ and
 $\epsilon_c$. Relative to the mode, $x^m_c = x^*_c + \log\big(n_c/(n f^*_c)\big)$, i.e. (C) with $r - 1$ replaced by
-$\log r$: the displacement of the worst real entry drops from $11\,825$ to $9.4$.
+$\log r$: the displacement of the two cells of Figure 1 drops from 45 and 96 to 3.8 and 4.6, and $x^m_c$
+becomes $\log(n_c/N_c)$, the peak of the orange curve.
 
 (E) is the Laplace approximation of a likelihood that is not Gaussian in $x$: under a flat prior in $x$ the posterior
 of $\lambda = N_c e^x$ is $\mathrm{Gamma}(n_c, 1)$, so $x$ is log-gamma with mean $\psi(n_c) - \log N_c$ and variance
