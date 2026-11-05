@@ -53,6 +53,7 @@ The MTX file can be compressed with gzip (with `.gz` extension).
 
 * `-e`: (optional) Print extended output (Boolean, `'true', 'false', '1'` or `'0'`, default: `false`). See [Output](#output).
 * `-ltq`/`--ltq-estimate`: (optional) Which LTQ estimates the default output holds: `posterior` (default; *x\*<sub>gc</sub>* with the posterior error bars), `measured` (*x<sup>m</sup><sub>gc</sub>* with the measurement error bars, the default in Bonsai output mode) or `both`. With `-e 1` both kinds are always written. See [Output](#output).
+* `-mx`/`--measured-expansion`: (optional) Where the Poisson log-likelihood of a cell is expanded to get its measurement LTQ: `posterior-mode` (default; around *x\*<sub>gc</sub>*, Eqs. 44 and 46 of the note, for every cell) or `likelihood-maximum` (around its own maximum for nonzero counts, giving *log(n<sub>gc</sub>/N<sub>c</sub>)* with error bar *1/sqrt(n<sub>gc</sub>)*; zero counts keep `posterior-mode`). Only the measurement estimates depend on it. See [Output](#output).
 * `-gz`: (optional flag, no value) Compress the numerical text output files with gzip (`.txt.gz`). Overridden by `-npy`. See [Output formats](#output-formats-optional).
 * `-npy`: (optional flag, no value) Write the numerical output files as float64 NumPy arrays (`.npy`) instead of text. Overrides `-gz`. See [Output formats](#output-formats-optional).
 * `--bonsai-output-mode`: (optional flag, no value) Write only the numerical files and metadata required by Bonsai (NPY, MAP). Overrides `-e`, `-gz` and `-npy`.
@@ -94,6 +95,16 @@ bars *1/sqrt(n<sub>g</sub> f\*<sub>gc</sub>)* are the posterior estimates with t
 methods such as Bonsai that combine the measurements with a prior of their own; their error bars are the pure sampling
 noise and can be very large for cells with few expected counts. `--ltq-estimate` selects which kind the default output
 holds (`posterior` unless `--bonsai-output-mode` is given); `-e 1` writes both.
+
+The measurement estimates are the Gaussian that a second-order expansion of the Poisson log-likelihood of each cell
+makes of it, and `--measured-expansion` chooses where it is expanded. `posterior-mode` (default) expands around
+*x\*<sub>gc</sub>* for every cell (Eqs. 44 and 46 of the note). For a count far above the count expected at the gene
+mean that expansion is evaluated far from where it is accurate, and *x<sup>m</sup><sub>gc</sub>* can be absurdly
+large; `likelihood-maximum` instead expands a nonzero count around its own maximum, giving
+*x<sup>m</sup><sub>gc</sub> = log(n<sub>gc</sub>/N<sub>c</sub>)* with error bar *1/sqrt(n<sub>gc</sub>)*, independent
+of the prior, while zero counts (whose likelihood has no maximum) keep the `posterior-mode` formulas. Everything but
+`measured_ltq` and `measured_ltq_error_bars` (and `delta`/`d_delta` in Bonsai output mode) is identical between the
+two. See `docs/measured_ltq_linearisation.md` for the derivation and the numbers.
 
 * `log_transcription_quotients.txt`: This file contains the estimated values of the log-transcription quotients (LTQs) for each gene in each cell. The LTQ *x<sub>gc</sub>* of gene *g* in cell *c* corresponds to the estimated logarithm of the fraction of mRNAs in cell *c* that belong to gene *g*. The LTQs are thus normalized such that *&Sigma;<sub>g</sub> exp(x<sub>gc</sub>) = 1* for each cell *c*. In order to get an estimate of the number of mRNAs for gene *g* in cell *c* one would thus need to multiply *exp(x<sub>gc</sub>)* by the estimated total number of mRNAs *M* in the cell.
 
@@ -151,8 +162,10 @@ Use `--bonsai-output-mode` to write only:
 - `delta.npy` and `d_delta.npy`: float32 arrays of shape `(genes, cells)`,
   containing deviations from the gene mean and their **standard deviations** (not variances).
   By default these are the measurement estimates, *x<sup>m</sup><sub>gc</sub> − &mu;<sub>g</sub>* and
-  *1/sqrt(n<sub>g</sub> f\*<sub>gc</sub>)*; with `--ltq-estimate posterior` they are the posterior estimates
-  *x\*<sub>gc</sub> − &mu;<sub>g</sub>* and *&epsilon;<sub>gc</sub>* instead.
+  *1/sqrt(n<sub>g</sub> f\*<sub>gc</sub>)*, or with `--measured-expansion likelihood-maximum`
+  *log(n<sub>gc</sub>/N<sub>c</sub>) − &mu;<sub>g</sub>* and *1/sqrt(n<sub>gc</sub>)* for nonzero counts; with
+  `--ltq-estimate posterior` they are the posterior estimates *x\*<sub>gc</sub> − &mu;<sub>g</sub>* and
+  *&epsilon;<sub>gc</sub>* instead.
 - `mu.npy` and `variance.npy`: float64 arrays of shape `(genes, 1)`, containing
   one baseline mean and one prior variance per gene.
 - `geneID.txt`, `cellID.txt` and `sanity_command.txt`: identifiers and version,
@@ -168,7 +181,8 @@ reports an error if such files are present.
 
 `sanity_command.txt` records `# Output mode: bonsai` so consumers can select
 the NPY reader without another command-line option, and `# LTQ estimate: measured`
-(or `posterior`) so they know what `delta.npy` holds.
+(or `posterior`) and `# Measured expansion: posterior-mode` (or `likelihood-maximum`) so they know what
+`delta.npy` holds.
 
 Arrays use NPY version 1.0, little-endian values and C order. Row order matches
 `geneID.txt`; matrix columns match `cellID.txt`. Inference and uncertainty
@@ -197,6 +211,7 @@ matrix using `numpy.load(path, mmap_mode="r", allow_pickle=False)`.
     -npy, --npy_output                  Write the numerical output files as float64 NumPy arrays (.npy) instead of text; overrides -gz
     --bonsai-output-mode                Write only the four numerical files and IDs/metadata required by Bonsai (NPY, MAP); ignores -e, -gz and -npy
     -ltq, --ltq-estimate                Which LTQ estimates the default output holds: posterior (default), measured (default in Bonsai output mode) or both; -e 1 writes both kinds
+    -mx, --measured-expansion           Where the Poisson log-likelihood is expanded for the measurement LTQs: posterior-mode (default) or likelihood-maximum (log(n_gc/N_c) +- 1/sqrt(n_gc) for nonzero counts, posterior-mode for zero counts)
     -v_m, --v_method                    Option to specify the method for variance estimation (default: MAP, choice: MAP, EAP, MLE, MARG)
     -vmin, --variance_min               Minimal value of variance in log transcription quotient (default: 0.001)
     -vmax, --variance_max               Maximal value of variance in log transcription quotient (default: 50)

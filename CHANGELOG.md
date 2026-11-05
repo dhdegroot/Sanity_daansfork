@@ -16,6 +16,10 @@
   new `--ltq-estimate` (`-ltq`) option (`posterior`, `measured` or `both`).
 - Bonsai output mode keeps its file names but holds the measurement estimates by default
   (`--ltq-estimate posterior` gives the previous content); `sanity_command.txt` records `# LTQ estimate:`.
+- `--measured-expansion` (`-mx`): `posterior-mode` (default, Eqs. 44 and 46 for every cell) or `likelihood-maximum`
+  (x^m_gc = log(n_gc/N_c) with error bar 1/sqrt(n_gc) for nonzero counts, the posterior-mode formulas for zero
+  counts); only the measurement estimates depend on it. `sanity_command.txt` records `# Measured expansion:`.
+  See `docs/measured_ltq_linearisation.md` for why.
 - `tests/compare_section2.py`: an independent NumPy implementation of the fit's equations that the output is
   checked against.
 

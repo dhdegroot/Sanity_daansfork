@@ -295,8 +295,10 @@ it stands. Exact consistency needs the counts themselves.
   counts) and let it subtract the Sanity prior from the posterior precision there, where the full Poisson likelihood
   can be used. This is the exact version of option 1.
 
-The code on `new-direct-ltqs` implements Eqs. 44 and 46 as written (`measured_ltq`, `measured_ltq_error_bars`, and
-`delta.npy`/`d_delta.npy` in Bonsai output mode), so that the behaviour above can be measured on the simulated data.
+The code on `new-direct-ltqs` implements both: `--measured-expansion posterior-mode` (the default) is Eqs. 44 and 46
+as written, `--measured-expansion likelihood-maximum` is option 1 with Eq. 44/46 kept for zero counts (Sections 6.1
+and 6.2). Both write `measured_ltq`, `measured_ltq_error_bars`, and `delta.npy`/`d_delta.npy` in Bonsai output mode,
+so that the behaviour above can be measured on the simulated data (`docs/hpc_comparison_prompt.md`).
 All numbers in Sections 3, 5 and 6 come from MAP runs on `tests/count_table.tsv` (283 × 498) and on a synthetic
 3000 × 3000 matrix (Poisson counts from log-normal LTQs, $n/C$ spread evenly in log); the scripts are not part of the
 repository.

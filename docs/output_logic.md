@@ -29,8 +29,8 @@ cells give
 | $\langle v \rangle$, $v - \langle v \rangle$ | $\tfrac{v}{C}\sum_c \tfrac{1}{n f^*_c v + 1}$ and $\tfrac{v}{C}\sum_c \tfrac{n f^*_c v}{n f^*_c v + 1}$ (no cancellation) | 1 |
 | $\epsilon_c^2$ | $v_c + \dfrac{1}{C}\dfrac{v_c^2}{v - \langle v \rangle}$ (Eq. 41) | 2 |
 | $\sigma_\mu^2$ | Eq. 43 | after pass 1 |
-| $x^m_c$ | $x^*_c + \dfrac{x^*_c - \langle x^* \rangle}{n f^*_c v}$ (Eq. 44) | 2 |
-| $(\epsilon^m_c)^2$ | $1 / (n f^*_c)$ (Eq. 46) | 2 |
+| $x^m_c$ | $x^*_c + \dfrac{x^*_c - \langle x^* \rangle}{n f^*_c v}$ (Eq. 44); with `--measured-expansion likelihood-maximum` and $n_c > 0$: $\log(n_c / N_c)$ | 2 |
+| $(\epsilon^m_c)^2$ | $1 / (n f^*_c)$ (Eq. 46); with `--measured-expansion likelihood-maximum` and $n_c > 0$: $1 / n_c$ | 2 |
 | $v$ | $v_{k^*}$ | |
 
 The renormalised variances $v_c$ are computed in both passes and never stored (Section 2.10).
@@ -63,8 +63,8 @@ files do not carry names themselves (`-npy` or `-e 1`).
 |:--|:--|:--|
 | `log_transcription_quotients` | $x^*_c$ (MARG: $x_c$) | |
 | `ltq_error_bars` | $\epsilon_c$ (Eq. 41 / 48) | standard deviation; includes the $\mu$ uncertainty (the $1/C$ term) |
-| `measured_ltq` | $x^m_c$ (Eq. 44; MARG: averaged) | |
-| `measured_ltq_error_bars` | $1/\sqrt{n f^*_c}$ (Eq. 46; MARG: averaged as Eq. 48) | standard deviation |
+| `measured_ltq` | $x^m_c$ (Eq. 44; MARG: averaged). `-mx likelihood-maximum`: $\log(n_c/N_c)$ for $n_c > 0$, Eq. 44 for $n_c = 0$ | |
+| `measured_ltq_error_bars` | $1/\sqrt{n f^*_c}$ (Eq. 46; MARG: averaged as Eq. 48). `-mx likelihood-maximum`: $1/\sqrt{n_c}$ for $n_c > 0$, Eq. 46 for $n_c = 0$ | standard deviation |
 | `mu` | $\mu$ (Eq. 33 / 49) | |
 | `d_mu` | $\sigma_\mu$ (Eq. 43 / 50) | standard deviation |
 | `variance` | $v$ | |
@@ -83,7 +83,7 @@ files do not carry names themselves (`-npy` or `-e 1`).
 | `-ltq both` | the four files above |
 | `-e 1` (any `-ltq`) | the four files above + `mu`, `d_mu`, `variance`, `delta`, `d_delta`, `likelihood`, `geneID.txt`, `cellID.txt` |
 
-`sanity_command.txt` records `# Method:` and `# LTQ estimate:`.
+`sanity_command.txt` records `# Method:`, `# LTQ estimate:` and `# Measured expansion:`.
 
 ### Bonsai output mode
 
@@ -96,8 +96,9 @@ files do not carry names themselves (`-npy` or `-e 1`).
 | `measured` (default in this mode) | $x^m_c - \mu$ | $1/\sqrt{n f^*_c}$ |
 | `posterior` | $x^*_c - \mu$ | $\epsilon_c$ |
 
-`mu.npy` = $\mu$ and `variance.npy` = $v$ in both cases. `sanity_command.txt` says which it is
-(`# LTQ estimate:` and the `# Output:` line).
+`mu.npy` = $\mu$ and `variance.npy` = $v$ in both cases; with `--measured-expansion likelihood-maximum` the
+`measured` row holds $\log(n_c/N_c) - \mu$ and $1/\sqrt{n_c}$ for nonzero counts. `sanity_command.txt` says which it
+is (`# LTQ estimate:`, `# Measured expansion:` and the `# Output:` line).
 
 ## 3 Redundancy, for the discussion on a minimal output
 
@@ -107,5 +108,6 @@ files do not carry names themselves (`-npy` or `-e 1`).
   and $\sigma_\mu^2$ is the mean of the full covariance (Eq. 40), so $\sigma_\mu$ can be recomputed from $v$ and the $v_c$.
 - `measured_ltq` and its error bar are functions of $x^*_c$, $\mu$, $v$ and $n f^*_c = N_c e^{x^*_c}$ (Eqs. 44, 46),
   so at a fixed $v$ they are derivable from the posterior files plus the count totals (see `docs/measured_ltq_linearisation.md`).
-  For MARG they are not.
+  For MARG they are not. With `--measured-expansion likelihood-maximum` the nonzero entries are functions of the
+  counts alone.
 - `likelihood` is only needed to reconstruct the posterior over $v$.
