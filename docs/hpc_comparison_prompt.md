@@ -1,41 +1,50 @@
 # Prompt for the HPC agent: compare three versions of Sanity on simulated data
 
-You are working on the CBE cluster (Slurm). Your task is to compare three versions of the Sanity repository
-(https://github.com/jmbreda/Sanity, or the clone I point you to) on simulated single-cell count matrices with known
-ground truth, and to write a short report. Do not change the code. Ask me before running anything on the data.
+You are working on the CBE cluster (Slurm). Your task is to compare three versions of Sanity on simulated
+single-cell count matrices with known ground truth, and to write a short report. The code is in my fork
+https://github.com/dhdegroot/Sanity_daansfork (or the clone I point you to), branch `clean-up-meas`. Do not change
+the code. Ask me before running anything on the data.
 
 The three versions:
 
-| version | checkout | command-line difference | what its LTQ files hold |
+| version | source | command-line difference | what its LTQ files hold |
 |:--|:--|:--|:--|
-| **A** `clean-up` | branch `clean-up` | none | the previous implementation: `mu_g + delta_gc` with the SI 2021 error bars |
-| **B** `new-direct-ltqs`, posterior-mode | branch `new-direct-ltqs` | default (`--measured-expansion posterior-mode`) | posterior LTQs `x*_gc` with posterior error bars, and measurement LTQs `x^m_gc` from the note's Eq. 44/46 (expansion around the posterior mode) |
-| **C** `new-direct-ltqs`, likelihood-maximum | same binary as B | `--measured-expansion likelihood-maximum` | the same posterior LTQs; measurement LTQs `log(n_gc/N_c) ± 1/sqrt(n_gc)` for nonzero counts, Eq. 44/46 for zero counts |
+| **A** previous | commit `01df9080` (the last commit before the new fit; it is on the history of `clean-up-meas` and is the tip of branch `clean-up` of the upstream repository jmbreda/Sanity) | none | the previous implementation: `mu_g + delta_gc` with the SI 2021 error bars |
+| **B** new, posterior-mode | branch `clean-up-meas` | default (`--measured-expansion posterior-mode`) | posterior LTQs `x*_gc` with posterior error bars, and measurement LTQs `x^m_gc` from the note's Eq. 44/46 (expansion around the posterior mode) |
+| **C** new, likelihood-maximum | same binary as B | `--measured-expansion likelihood-maximum` | the same posterior LTQs; measurement LTQs `log(n_gc/N_c) ± 1/sqrt(n_gc)` for nonzero counts, Eq. 44/46 for zero counts |
 
-B and C differ only in the two `measured_ltq*` files. Background: `docs/output_logic.md` lists the formula behind
-every output file, `docs/measured_ltq_linearisation.md` explains why Eq. 44 fails for surprising counts and why C
-exists, `docs/measured_expansion_plan.md` describes the option.
+B and C are one binary run with two settings and differ only in the two `measured_ltq*` files. Background (all on
+`clean-up-meas`): `docs/output_logic.md` lists the formula behind every output file,
+`docs/measured_ltq_linearisation.md` explains why Eq. 44 fails for surprising counts and why C exists,
+`docs/measured_expansion_plan.md` describes the option.
 
-## 1 Build both branches and record the commits
+## 1 Build the two binaries and record the commits
 
-Clone the repository twice (or use two worktrees), one per branch. Build each with GCC and OpenMP (`module load` a
-recent GCC first):
+Clone the fork once and make two checkouts, one per binary:
+
+```bash
+git clone https://github.com/dhdegroot/Sanity_daansfork.git sanity-new
+cd sanity-new && git checkout clean-up-meas
+git worktree add ../sanity-previous 01df9080
+```
+
+Build each with GCC and OpenMP (`module load` a recent GCC first):
 
 ```bash
 cd src && make Sanity
 ```
 
-The binary is `bin/Sanity`. Record `git rev-parse HEAD` of each checkout and `bin/Sanity -v` in the report.
-In the `new-direct-ltqs` checkout, check that `bin/Sanity -h` lists `--measured-expansion`; if it does not, the
-option has not been merged yet: stop and tell me. Then run `python3 tests/compare_section2.py` there once (needs
-NumPy); it must print PASSED.
+The binary is `bin/Sanity` in each checkout. Record `git rev-parse HEAD` of both checkouts and `bin/Sanity -v` in
+the report. In `sanity-new`, check that `bin/Sanity -h` lists `--measured-expansion`; if it does not, you have the
+wrong commit: stop and tell me. Then run `python3 tests/compare_section2.py` there once (needs NumPy); it must
+print PASSED.
 
 ## 2 Ask me before running
 
 Before any run, ask me for:
 
 1. The paths of the simulated count matrices (TSV with a header line of cell names and one gene per row, or
-   Matrix Market `.mtx` with `-mtx_genes` and `-mtx_cells` files; both may be gzipped).
+   Matrix Market `.mtx` with `-mtx_genes` and `-mtx_cells` files; either may be gzipped).
 2. The paths of their ground truth, and which quantities it contains and in which layout. Ask explicitly whether it
    has the true LTQs `x_gc` (log fraction of the cell's mRNA from gene `g`), the true gene variances `v_g`, the true
    gene means `mu_g`, and how genes and cells are identified (names or order). Check that every dataset's gene and
@@ -48,23 +57,23 @@ All versions take the same command line; C adds one option. Run every dataset wi
 full-precision output:
 
 ```bash
-# A and B
+# A (sanity-previous/bin/Sanity) and B (sanity-new/bin/Sanity)
 bin/Sanity -f <counts.tsv> -d <out_dir>/ -n <threads> -v_m <METHOD> -e 1 -npy
-# C
+# C (sanity-new/bin/Sanity)
 bin/Sanity -f <counts.tsv> -d <out_dir>/ -n <threads> -v_m <METHOD> -e 1 -npy --measured-expansion likelihood-maximum
 ```
 
 with `METHOD` in `MAP` (the default), `MLE`, `EAP`, `MARG`. Each run goes in its own output directory. That is
 3 versions × 4 methods per dataset; submit them as Slurm jobs (one job per dataset × version × method, or a job
 array), with `--cpus-per-task` equal to `-n`. Record for every run the wall time and peak memory from `sacct`
-(`Elapsed`, `MaxRSS`) and from `/usr/bin/time -v` if available. MARG is the slowest; on `clean-up` it is several
-times slower than on `new-direct-ltqs`. B and C cost the same (the fit is identical; only the second pass differs).
+(`Elapsed`, `MaxRSS`) and from `/usr/bin/time -v` if available. MARG is the slowest; in A it is several times slower
+than in B and C. B and C cost the same (the fit is identical; only the second pass differs).
 
 Genes with zero total count are dropped by Sanity; `geneID.txt` lists the genes that were kept, in output order.
 Every numerical output is float64 NPY (`numpy.load(path, allow_pickle=False)`), one row per gene in the order of
 `geneID.txt`, matrix columns in the order of `cellID.txt`. Error bars are standard deviations, not variances.
 
-### Output of A (`clean-up`, `-e 1 -npy`)
+### Output of A (`-e 1 -npy`)
 
 | file | shape | content |
 |:--|:--|:--|
@@ -78,7 +87,7 @@ Every numerical output is float64 NPY (`numpy.load(path, allow_pickle=False)`), 
 | `likelihood.npy` | genes × bins | posterior over the variance grid |
 | `likelihood_grid.npy` | bins × 1 | the variance grid (160 points from 0.001 to 50, log-spaced) |
 
-### Output of B and C (`new-direct-ltqs`, `-e 1 -npy`)
+### Output of B and C (`-e 1 -npy`)
 
 | file | shape | content |
 |:--|:--|:--|
@@ -93,9 +102,9 @@ Every numerical output is float64 NPY (`numpy.load(path, allow_pickle=False)`), 
 | `variance.npy` | genes × 1 | the selected `v_g` (MARG: posterior mean) |
 | `likelihood.npy`, `likelihood_grid.npy` | as above | as above |
 
-`sanity_command.txt` in each output directory records the version, method, `# LTQ estimate:` and
-`# Measured expansion:` (new branch only) and the command line; copy it into the report. For MARG, the zero-count
-entries of C's measured files are Eq. 44 averaged over the grid, as in B.
+`sanity_command.txt` in each output directory records the version, method, the command line and, for B and C,
+`# LTQ estimate:` and `# Measured expansion:`; copy it into the report. For MARG, the zero-count entries of C's
+measured files are Eq. 44 averaged over the grid, as in B.
 
 ## 4 Compare each version with the ground truth
 
@@ -105,8 +114,8 @@ For each dataset, version and method:
   of genes within a factor 2, split by expression level (bin the genes by their total count `n_g`, e.g. decades).
   Also note how many genes sit at the grid edges (0.001 or 50). B and C are identical here; report once.
 - **`mu_g`**: estimate minus the true mean (`mu.npy`), by expression level. Note that A uses `psi(n_g) - q_g` and
-  B/C use the mean of `x*_gc`, so a shift of `log(n_g) - psi(n_g)` (about `1/(2 n_g)`) between the branches is
-  expected; compare both with the truth.
+  B/C use the mean of `x*_gc`, so a shift of `log(n_g) - psi(n_g)` (about `1/(2 n_g)`) between A and B/C is
+  expected; compare each with the truth.
 - **LTQs**, four estimates: A's `mu_g + delta_gc` (its `log_transcription_quotients.npy`); B's `x*_gc`
   (`log_transcription_quotients.npy`, identical in C); B's `x^m_gc` (`measured_ltq.npy`, Eq. 44); C's `x^m_gc`
   (`measured_ltq.npy`, likelihood maximum). Against the true `x_gc`: RMSE and bias, by expression level and
@@ -133,7 +142,7 @@ For the same dataset and method:
   construction) and equal to about 1e-9 for MARG; `likelihood.npy` should agree to about 1e-8. Report the number of
   genes where the selected `v_g` differs, if any. `delta.npy` should agree to about 1e-8. `mu.npy` differs by
   `log(n_g) - psi(n_g)`; `ltq_error_bars.npy` and `d_delta.npy` differ on purpose (new posterior error bars versus
-  the old ones, and no asymmetric zero-count bar any more). Show the ratio of new to old error bars by expression
+  the old ones, and no asymmetric zero-count bar any more). Show the ratio of B's to A's error bars by expression
   level and by zero versus nonzero counts.
 - **B versus C.** Every file except the two `measured_ltq*` files must be bit-identical (`numpy.array_equal`); so
   must the zero-count entries of the two measured files. Report any difference as a bug. For the nonzero entries show

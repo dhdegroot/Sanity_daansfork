@@ -1,6 +1,6 @@
 # Plan: measurement LTQs expanded around the likelihood maximum
 
-Branch `new-direct-ltqs`. Equation numbers refer to Section 2 of E. van Nimwegen's note; (B), (C), (E) to
+Branch `clean-up-meas`. Equation numbers refer to Section 2 of E. van Nimwegen's note; (B), (C), (E) to
 `docs/measured_ltq_linearisation.md`. Implemented as planned (commits "Add --measured-expansion …", "Check both
 measured expansions …", "Document --measured-expansion"); Section 4 is what the HPC comparison should confirm.
 

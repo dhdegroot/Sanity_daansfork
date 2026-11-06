@@ -1,6 +1,6 @@
 # What Sanity writes, and the formula behind every number
 
-Branch `new-direct-ltqs`. Equation numbers refer to Section 2 of E. van Nimwegen, "Getting proper error-bars in
+Branch `clean-up-meas`. Equation numbers refer to Section 2 of E. van Nimwegen, "Getting proper error-bars in
 Sanity" (the note), unless marked SI (the 2021 Supplementary Information). Per gene $g$ (index dropped below):
 counts $n_c$, $n = \sum_c n_c$, cell totals $N_c$, $C$ cells, variance grid $v_k$ ($k = 0,\ldots,K-1$).
 
