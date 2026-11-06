@@ -39,17 +39,12 @@ the report. In `sanity-new`, check that `bin/Sanity -h` lists `--measured-expans
 wrong commit: stop and tell me. Then run `python3 tests/compare_section2.py` there once (needs NumPy); it must
 print PASSED.
 
-## 2 Ask me before running
-
-Before any run, ask me for:
+## 2 How to find the data
 
 1. The paths of the simulated count matrices (TSV with a header line of cell names and one gene per row, or
-   Matrix Market `.mtx` with `-mtx_genes` and `-mtx_cells` files; either may be gzipped).
-2. The paths of their ground truth, and which quantities it contains and in which layout. Ask explicitly whether it
-   has the true LTQs `x_gc` (log fraction of the cell's mRNA from gene `g`), the true gene variances `v_g`, the true
-   gene means `mu_g`, and how genes and cells are identified (names or order). Check that every dataset's gene and
-   cell order matches the truth before using it.
-3. How much compute I want to spend (number of threads per job, partition, time limit) and where to put the output.
+   Matrix Market `.mtx` with `-mtx_genes` and `-mtx_cells` files; either may be gzipped) can be found in `/groups/degroot/lab/data_public/scrnaseq/simulated_datasets` with `simulated_binary_10_gens_samplingnoise_seed_1231` as an example, but you can pick 3 more datasets to test from that folder. Note that they contain a Gene_table.txt matrix, which you need and the ground truth is in delta_true.txt and variance_true.txt
+2. Ask me how much compute I want to spend (number of threads per job, partition, time limit) and where to put the output.
+3. Make sure to start off slurm on all jobs. I need to leave soon and will then close down this agent. Write a follow-up prompt in the docs/ folder of this repo.
 
 ## 3 How Sanity is run
 
@@ -63,8 +58,9 @@ bin/Sanity -f <counts.tsv> -d <out_dir>/ -n <threads> -v_m <METHOD> -e 1 -npy
 bin/Sanity -f <counts.tsv> -d <out_dir>/ -n <threads> -v_m <METHOD> -e 1 -npy --measured-expansion likelihood-maximum
 ```
 
-with `METHOD` in `MAP` (the default), `MLE`, `EAP`, `MARG`. Each run goes in its own output directory. That is
-3 versions × 4 methods per dataset; submit them as Slurm jobs (one job per dataset × version × method, or a job
+with `METHOD` in `MAP` (the default), `MLE`, `EAP`, `MARG`. For now, only try `EAP` and `MAP`.
+Each run goes in its own output directory. That is
+3 versions × 2 methods per dataset; submit them as Slurm jobs (one job per dataset × version × method, or a job
 array), with `--cpus-per-task` equal to `-n`. Record for every run the wall time and peak memory from `sacct`
 (`Elapsed`, `MaxRSS`) and from `/usr/bin/time -v` if available. MARG is the slowest; in A it is several times slower
 than in B and C. B and C cost the same (the fit is identical; only the second pass differs).
