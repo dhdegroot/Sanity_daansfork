@@ -26,8 +26,7 @@ enum class Option
     GzipOutput,
     NpyOutput,
     BonsaiOutputMode,
-    LtqEstimateOption,
-    MeasuredExpansionOption
+    LtqEstimateOption
 };
 
 struct OptionSpec
@@ -54,7 +53,6 @@ const std::vector<OptionSpec> option_table = {
     {Option::NpyOutput, {"-npy", "--npy_output", "--npy", "--npy-output"}, false},
     {Option::BonsaiOutputMode, {"--bonsai-output-mode"}, false},
     {Option::LtqEstimateOption, {"-ltq", "--ltq-estimate", "--ltq_estimate"}, true},
-    {Option::MeasuredExpansionOption, {"-mx", "--measured-expansion", "--measured_expansion"}, true},
 };
 
 // Returns the table entry matched by `arg`, or nullptr if `arg` is not a known option.
@@ -108,20 +106,6 @@ bool parse_ltq_estimate(const std::string &name, LtqEstimate &ltq_estimate)
     else
     {
         logging_debug("Invalid value for --ltq-estimate: '" + name + "' (choice: posterior, measured, both).");
-        return false;
-    }
-    return true;
-}
-
-bool parse_measured_expansion(const std::string &name, MeasuredExpansion &measured_expansion)
-{
-    if (name == "posterior-mode")
-        measured_expansion = MeasuredExpansion::PosteriorMode;
-    else if (name == "likelihood-maximum")
-        measured_expansion = MeasuredExpansion::LikelihoodMaximum;
-    else
-    {
-        logging_debug("Invalid value for --measured-expansion: '" + name + "' (choice: posterior-mode, likelihood-maximum).");
         return false;
     }
     return true;
@@ -239,10 +223,6 @@ ParseResult parse_options(int argc, char **argv, SanityOptions &options)
         case Option::LtqEstimateOption:
             ltq_estimate_str = value;
             break;
-        case Option::MeasuredExpansionOption:
-            if (!parse_measured_expansion(value, options.measured_expansion))
-                return ParseResult::Error;
-            break;
         default:
             break;
         }
@@ -310,7 +290,6 @@ void show_usage()
               << "\t-npy,--npy_output\tWrite the numerical output files as float64 NumPy arrays (.npy) instead of text; overrides -gz\n"
               << "\t--bonsai-output-mode\tWrite only the four numerical files and IDs/metadata required by Bonsai (NPY, MAP); ignores -e, -gz and -npy\n"
               << "\t-ltq,--ltq-estimate\tWhich LTQ estimates the default output holds: posterior (x* with posterior error bars, default), measured (x^m with measurement error bars; the default in Bonsai output mode) or both; -e 1 writes both kinds\n"
-              << "\t-mx,--measured-expansion\tWhere the Poisson log-likelihood is expanded for the measurement LTQs: posterior-mode (x* for every cell, Eq. 44/46 of the note; default) or likelihood-maximum (log(n_gc/N_c) +- 1/sqrt(n_gc) for nonzero counts, posterior-mode for zero counts)\n"
               << "\t-vmin,--variance_min\tMinimal value of variance in log transcription quotient (default: 0.001)\n"
               << "\t-vmax,--variance_max\tMaximal value of variance in log transcription quotient (default: 50)\n"
               << "\t-nbin,--number_of_variance_bins\tNumber of bins for the variance in log transcription quotient  (default: 160)\n"
@@ -327,10 +306,4 @@ const char *ltq_estimate_name(LtqEstimate ltq_estimate)
 {
     static const char *names[] = {"posterior", "measured", "both"};
     return names[static_cast<int>(ltq_estimate)];
-}
-
-const char *measured_expansion_name(MeasuredExpansion measured_expansion)
-{
-    static const char *names[] = {"posterior-mode", "likelihood-maximum"};
-    return names[static_cast<int>(measured_expansion)];
 }
