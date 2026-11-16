@@ -177,7 +177,7 @@ Per gene, the driver is the mean count per cell $n/C$ (synthetic 3000 × 3000 ma
 10 %, 1092 above 90 %), so a cut at 50 % is robust. It flags 47 % of the synthetic genes and 34 % of the real ones,
 holding 0.5 % and 1.8 % of all UMIs but about half of the detected transcriptome, and leaves the mixed band (187 of
 283 real genes with 10 to 90 % bad entries) unflagged. The natural flag is per entry: displacement above 1, available
-today from the standard output as `measured_ltq` minus `log_transcription_quotients`, or from the counts as
+today from the output as `ltqs_measurement_approx` minus `ltqs_posterior`, or from the counts as
 $n_c / (N_c e^{x^*_c}) - 1$. The entries a gene flag would discard, the nonzero counts of lowly expressed genes, are
 the only informative entries those genes have. The posterior output $x^*_c \pm \epsilon_c$ is unaffected throughout.
 

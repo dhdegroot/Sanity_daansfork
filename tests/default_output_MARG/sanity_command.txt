@@ -1,5 +1,5 @@
-# Timestamp: 2026-11-05 00:44:19
-# Sanity version: 2.0.0
+# Timestamp: 2026-11-16 22:33:57
+# Sanity version: 3.0.0
 # Method: MARG
 # LTQ estimate: posterior
-../bin/Sanity -f count_table.tsv -d default_output_MARG -v_m MARG -e 1
+../bin/Sanity -f count_table.tsv -d default_output_MARG -v_m MARG -e 1 -n 4

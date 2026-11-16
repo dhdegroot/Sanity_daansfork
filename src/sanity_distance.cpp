@@ -26,7 +26,7 @@ void distance_row_euclidean(double **log_fold_change_cg, double *distance_row_c,
 // I/O
 void parse_argv(int argc,char** argv, string &sanity_folder, double &s2n_cutoff, bool &with_error_bar, int &num_threads, int &num_genes, int &num_cells);
 static void show_usage(void);
-void load_matrix(string sanity_folder, double **log_fold_change_cg, double **log_fold_change_error_sq_cg, double *gene_variance_g, int num_genes, int num_cells, bool with_error_bar);
+void load_matrix(string sanity_folder, double **log_fold_change_cg, double **log_fold_change_error_sq_cg, double *gene_variance_g, double **measurement_log_fold_change_cg, double **measurement_error_sq_cg, int num_genes, int num_cells, bool with_error_bar);
 void print_distance(string out_file, double **distance_cc, int num_cells);
 
 int main(int argc, char** argv){
@@ -55,19 +55,32 @@ int main(int argc, char** argv){
 
 	// Declare temporary variables
 	int g, c;
-	double **log_fold_change_all_cg = new double *[num_cells]; // <delta_gc> (SI Eq. 39), indexed [cell][gene], read from delta.txt; before the signal-to-noise filter.
+	double **log_fold_change_all_cg = new double *[num_cells]; // <delta_gc> (SI Eq. 39), indexed [cell][gene], from ltqs_posterior.txt minus gene_means.txt; before the signal-to-noise filter.
 	for(c=0;c<num_cells;c++)
 		log_fold_change_all_cg[c] = new double[num_genes];
 
-	double **log_fold_change_error_sq_all_cg = new double *[num_cells]; // epsilon_gc^2 (SI Eq. 42), indexed [cell][gene], from the error bars in d_delta.txt.
+	double **log_fold_change_error_sq_all_cg = new double *[num_cells]; // epsilon_gc^2 (SI Eq. 42), indexed [cell][gene], from the error bars in ltqs_posterior_error_bars.txt.
 	for(c=0;c<num_cells;c++)
 		log_fold_change_error_sq_all_cg[c] = new double[num_genes];
 	
-	double *gene_variance_all_g = new double [num_genes]; // v_g (SI Eq. 17), read from variance.txt.
+	double *gene_variance_all_g = new double [num_genes]; // v_g (SI Eq. 17), read from gene_variances.txt.
+
+	// delta~_gc and eta_gc^2 (SI Eqs. 62, 63): the measurement LTQs of Sanity minus the gene mean, with their error
+	// bars squared, from ltqs_measurement_approx.txt and ltqs_measurement_approx_error_bars.txt; only with error bars.
+	double **measurement_log_fold_change_all_cg = NULL;
+	double **measurement_error_sq_all_cg = NULL;
+	if(with_error_bar){
+		measurement_log_fold_change_all_cg = new double *[num_cells];
+		measurement_error_sq_all_cg = new double *[num_cells];
+		for(c=0;c<num_cells;c++){
+			measurement_log_fold_change_all_cg[c] = new double[num_genes];
+			measurement_error_sq_all_cg[c] = new double[num_genes];
+		}
+	}
 
 	// Get data
 	cout << "Get data... ";
-	load_matrix(sanity_folder, log_fold_change_all_cg, log_fold_change_error_sq_all_cg, gene_variance_all_g, num_genes, num_cells, with_error_bar);	
+	load_matrix(sanity_folder, log_fold_change_all_cg, log_fold_change_error_sq_all_cg, gene_variance_all_g, measurement_log_fold_change_all_cg, measurement_error_sq_all_cg, num_genes, num_cells, with_error_bar);	
 
 	// Compute signal 2 noise
 	bool keep_gene_g[num_genes]; // True for the genes whose signal-to-noise reaches the cut-off.
@@ -109,11 +122,15 @@ int main(int argc, char** argv){
 		num_genes_kept = num_genes;
 	}
 	
-	double **log_fold_change_cg = new double *[num_cells]; // <delta_gc> of the genes above the cut-off, indexed [cell][gene].
+	// The values the distance is computed from, for the genes above the cut-off, indexed [cell][gene]: with error
+	// bars delta~_gc and eta_gc^2 (SI Eqs. 62, 63), without them <delta_gc> alone.
+	double **distance_input_all_cg = with_error_bar ? measurement_log_fold_change_all_cg : log_fold_change_all_cg;
+	double **distance_input_error_sq_all_cg = with_error_bar ? measurement_error_sq_all_cg : log_fold_change_error_sq_all_cg;
+	double **log_fold_change_cg = new double *[num_cells];
 	for(c=0;c<num_cells;c++)
 		log_fold_change_cg[c] = new double[num_genes_kept];
 
-	double **log_fold_change_error_sq_cg = new double *[num_cells]; // epsilon_gc^2 of the genes above the cut-off.
+	double **log_fold_change_error_sq_cg = new double *[num_cells];
 	for(c=0;c<num_cells;c++)
 		log_fold_change_error_sq_cg[c] = new double[num_genes_kept];
 
@@ -125,8 +142,8 @@ int main(int argc, char** argv){
 		for(g=0;g<num_genes;g++){
 			if(keep_gene_g[g]){
 				for(c=0;c<num_cells;c++){
-					log_fold_change_cg[c][k] = log_fold_change_all_cg[c][g];
-					log_fold_change_error_sq_cg[c][k] = log_fold_change_error_sq_all_cg[c][g];
+					log_fold_change_cg[c][k] = distance_input_all_cg[c][g];
+					log_fold_change_error_sq_cg[c][k] = distance_input_error_sq_all_cg[c][g];
 				}
 				gene_variance_g[k] = gene_variance_all_g[g];
 				k++;
@@ -135,8 +152,8 @@ int main(int argc, char** argv){
 	}else{
 		for(g=0;g<num_genes;g++){
             for(c=0;c<num_cells;c++){
-                log_fold_change_cg[c][g] = log_fold_change_all_cg[c][g];
-                log_fold_change_error_sq_cg[c][g] = log_fold_change_error_sq_all_cg[c][g];
+                log_fold_change_cg[c][g] = distance_input_all_cg[c][g];
+                log_fold_change_error_sq_cg[c][g] = distance_input_error_sq_all_cg[c][g];
             }
             gene_variance_g[g] = gene_variance_all_g[g];
         }
@@ -149,9 +166,15 @@ int main(int argc, char** argv){
 	for(c=0;c<num_cells;c++){
 		delete[] log_fold_change_all_cg[c];
 		delete[] log_fold_change_error_sq_all_cg[c];
+		if(with_error_bar){
+			delete[] measurement_log_fold_change_all_cg[c];
+			delete[] measurement_error_sq_all_cg[c];
+		}
 	}
 	delete[] log_fold_change_all_cg;
 	delete[] log_fold_change_error_sq_all_cg;
+	delete[] measurement_log_fold_change_all_cg;
+	delete[] measurement_error_sq_all_cg;
 	delete[] gene_variance_all_g;
 
 	// Get distance
@@ -201,22 +224,9 @@ int main(int argc, char** argv){
 
 void get_distance_errorbar(double **log_fold_change_cg, double **log_fold_change_error_sq_cg, double *gene_variance_g, double **distance_cc, int num_genes, int num_cells, int num_threads){
 
-	// Remove the shrinkage towards zero caused by the prior N(0, v_g), in place:
-	// <delta_gc> becomes delta~_gc and epsilon_gc^2 becomes eta_gc^2 (SI Eqs. 62, 63).
-	// From here on log_fold_change_cg and log_fold_change_error_sq_cg hold delta~_gc and eta_gc^2.
-	int g, c;
-	double prior_removal_factor; // v_g/(v_g - epsilon_gc^2), which turns <delta_gc> into delta~_gc and epsilon_gc^2 into eta_gc^2 (SI Eqs. 62, 63).
-	for(g=0;g<num_genes;g++){
-		for(c=0;c<num_cells;c++){
-			if( gene_variance_g[g]-log_fold_change_error_sq_cg[c][g] > 0.0 )
-				prior_removal_factor = gene_variance_g[g]/(gene_variance_g[g]-log_fold_change_error_sq_cg[c][g]);
-			else
-				prior_removal_factor = gene_variance_g[g]/0.000001;
-
-			log_fold_change_cg[c][g] = log_fold_change_cg[c][g]*prior_removal_factor;
-			log_fold_change_error_sq_cg[c][g] = log_fold_change_error_sq_cg[c][g]*prior_removal_factor;
-		}
-	}
+	// log_fold_change_cg and log_fold_change_error_sq_cg hold delta~_gc and eta_gc^2 (SI Eqs. 62, 63), the
+	// measurement LTQs of Sanity minus the gene mean: the prior N(0, v_g) is already divided out.
+	int g;
 
 	// alpha_times_variance_ga = alpha*v_g for every gene and grid point of alpha (SI Eq. 56)
 	int a;
@@ -353,107 +363,82 @@ void distance_row_euclidean(double **log_fold_change_cg, double *distance_row_c,
 }
 
 
-void load_matrix(string sanity_folder, double **log_fold_change_cg, double **log_fold_change_error_sq_cg, double *gene_variance_g, int num_genes, int num_cells, bool with_error_bar){
 
-	string path;
-	FILE *file;
-	char line[3000000];
-	char *token;
-	char *retval;
-	int g, c;
-	double log_fold_change_error; // epsilon_gc, read from d_delta.txt.
-
-	// Read delta
-	path = sanity_folder + "delta.txt";
-	file = (FILE *) fopen(path.c_str(),"r");
-	if(file == NULL){
-		fprintf(stderr,"Cannot open input file %s\n",path.c_str());
+// Reads a per-gene table of Sanity 3.0: a header line of cell names, then one line per gene that starts with the
+// gene name. store(g, c, value) receives every number. Exits on a short or unreadable line.
+template <class Store>
+static void read_matrix_table(const string &path, int num_genes, int num_cells, Store store){
+	ifstream in(path);
+	if(!in){
+		cerr << "Cannot open input file " << path << "\n";
 		exit(EXIT_FAILURE);
 	}
-	for (g = 0; g < num_genes; g++){
-		retval = fgets(line,3000000,file);
-		if(retval == NULL){
-			fprintf(stderr,"Error: Couldn't read a line at row number %d\n",g);
-			return;
-		}
-		token = strtok(line," \t");
-		for (c=0; c<num_cells; c++){	
-			if(token != NULL){
-				log_fold_change_cg[c][g] = atof(token);
-			}else{
-				fprintf(stderr,"Error: not enough fields on line number %d:\n",g);
-				return; 
-			}
-			token = strtok(NULL," \t");
-		}
-		token = strtok(NULL," \t");
-		if(token != NULL){
-			fprintf(stderr,"Error: too many fields on line number %d:\n",g);
-		}
-	}
-	fclose(file);
-
-	// Read epsilon
-	path = sanity_folder + "d_delta.txt";
-	file = (FILE *) fopen(path.c_str(),"r");
-	if(file == NULL){
-		fprintf(stderr,"Cannot open input file %s\n",path.c_str());
-		exit(EXIT_FAILURE);
-	}
-	for (g = 0; g < num_genes; g++){
-		retval = fgets(line,3000000,file);
-		if(retval == NULL){
-			fprintf(stderr,"Error: Couldn't read a line at row number %d\n",g);
-			return;
-		}
-		token = strtok(line," \t");
-		for (c=0; c<num_cells; c++){	
-			if(token != NULL){
-				log_fold_change_error = atof(token);
-				log_fold_change_error_sq_cg[c][g] = log_fold_change_error*log_fold_change_error;
-			}else{
-				fprintf(stderr,"Error: not enough fields on line number %d:\n",g);
-				return; 
-			}
-			token = strtok(NULL," \t");
-		}
-		token = strtok(NULL," \t");
-		if(token != NULL){
-			fprintf(stderr,"Error: too many fields on line number %d:\n",g);
-		}
-	}
-	fclose(file);
-
-	// Read variance
-	if(with_error_bar){
-		path = sanity_folder + "variance.txt";
-		file = (FILE *) fopen(path.c_str(),"r");
-		if(file == NULL){
-			fprintf(stderr,"Cannot open input file %s\n",path.c_str());
+	string line;
+	getline(in, line); // The header of cell names.
+	for(int g=0; g<num_genes; g++){
+		if(!getline(in, line)){
+			cerr << "Error: Couldn't read a line at row number " << g << " of " << path << "\n";
 			exit(EXIT_FAILURE);
 		}
-		for (g = 0; g < num_genes; g++){
-			retval = fgets(line,3000000,file);
-			if(retval == NULL){
-				fprintf(stderr,"Error: Couldn't read a line at row number %d\n",g);
-				return;
+		const char *pos = line.c_str() + strcspn(line.c_str(), " \t"); // Past the gene name.
+		char *end;
+		for(int c=0; c<num_cells; c++){
+			const double value = strtod(pos, &end);
+			if(end == pos){
+				cerr << "Error: not enough fields on line number " << g << " of " << path << "\n";
+				exit(EXIT_FAILURE);
 			}
-			token = strtok(line," \t");
-			if(token != NULL){
-				gene_variance_g[g] = atof(token);
-			}else{
-				fprintf(stderr,"Error: not enough fields on line number %d:\n",g);
-				return;
-			}
-			token = strtok(NULL," \t");
-			if(token != NULL){
-				fprintf(stderr,"Error: too many fields on line number %d:\n",g);
-			}
+			store(g, c, value);
+			pos = end;
 		}
-		fclose(file);
+		strtod(pos, &end);
+		if(end != pos)
+			cerr << "Error: too many fields on line number " << g << " of " << path << "\n";
 	}
+}
 
-	return;
+// Reads a per-gene vector of Sanity: one number per line.
+static void read_vector_file(const string &path, int num_genes, double *values_g){
+	ifstream in(path);
+	if(!in){
+		cerr << "Cannot open input file " << path << "\n";
+		exit(EXIT_FAILURE);
+	}
+	string line;
+	for(int g=0; g<num_genes; g++){
+		if(!getline(in, line)){
+			cerr << "Error: Couldn't read a line at row number " << g << " of " << path << "\n";
+			exit(EXIT_FAILURE);
+		}
+		char *end;
+		values_g[g] = strtod(line.c_str(), &end);
+		if(end == line.c_str()){
+			cerr << "Error: not enough fields on line number " << g << " of " << path << "\n";
+			exit(EXIT_FAILURE);
+		}
+	}
+}
+
+// Reads the extended output of Sanity (-e 1): the posterior LTQs x*_gc minus the gene mean mu_g, their error bars
+// squared, and with error bars also the gene variances v_g and the measurement LTQs x^m_gc minus mu_g with their
+// error bars squared. The measurement LTQs are the posterior with the prior divided out, which this tool used to do
+// itself (SI Eqs. 62, 63); Sanity now does it exactly.
+void load_matrix(string sanity_folder, double **log_fold_change_cg, double **log_fold_change_error_sq_cg, double *gene_variance_g, double **measurement_log_fold_change_cg, double **measurement_error_sq_cg, int num_genes, int num_cells, bool with_error_bar){
+
+	double *gene_mean_g = new double[num_genes]; // mu_g, read from gene_means.txt.
+	read_vector_file(sanity_folder + "gene_means.txt", num_genes, gene_mean_g);
+	read_matrix_table(sanity_folder + "ltqs_posterior.txt", num_genes, num_cells,
+		[&](int g, int c, double ltq){ log_fold_change_cg[c][g] = ltq - gene_mean_g[g]; });
+	read_matrix_table(sanity_folder + "ltqs_posterior_error_bars.txt", num_genes, num_cells,
+		[&](int g, int c, double error){ log_fold_change_error_sq_cg[c][g] = error*error; });
+	if(with_error_bar){
+		read_vector_file(sanity_folder + "gene_variances.txt", num_genes, gene_variance_g);
+		read_matrix_table(sanity_folder + "ltqs_measurement_approx.txt", num_genes, num_cells,
+			[&](int g, int c, double ltq){ measurement_log_fold_change_cg[c][g] = ltq - gene_mean_g[g]; });
+		read_matrix_table(sanity_folder + "ltqs_measurement_approx_error_bars.txt", num_genes, num_cells,
+			[&](int g, int c, double error){ measurement_error_sq_cg[c][g] = error*error; });
+	}
+	delete[] gene_mean_g;
 }
 
 
@@ -543,15 +528,14 @@ void parse_argv(int argc,char** argv, string &sanity_folder, double &s2n_cutoff,
     // Get number of gene and number of cells
 	num_genes = -1;
 	num_cells = -1;
-	ifstream in(sanity_folder + "delta.txt");
+	ifstream in(sanity_folder + "ltqs_posterior.txt");
 	if (in.is_open()){
 		num_genes = 0;
 		num_cells = 0;
 		string line;
 		
-		// get first line and count columns
+		// The header line holds "GeneID" and then the cell names; every later line is one gene.
 		getline(in, line);
-		++num_genes;
 		istringstream iss(line);
 		do{
 			string sub;
@@ -560,13 +544,13 @@ void parse_argv(int argc,char** argv, string &sanity_folder, double &s2n_cutoff,
 				++num_cells;
 		}
 		while(iss);
+		--num_cells;
 
-		// Now count genes in remaining lines
 		while ( getline(in, line) ){
 			   ++num_genes;
 		}
 	}else{
-		cerr << "Unable to open " + sanity_folder + "delta.txt\n";
+		cerr << "Unable to open " + sanity_folder + "ltqs_posterior.txt\n";
 	}
 
 }

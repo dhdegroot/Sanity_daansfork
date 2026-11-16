@@ -13,23 +13,20 @@
 // "SI" in the comments is the Supplementary Information of Breda, Zavolan & van Nimwegen, Nat. Biotechnol. 2021.
 // "note" is E. van Nimwegen, "Getting proper error-bars in Sanity" (update_final_proper_error_bars.pdf), Section 2.
 
-// Creates the output folder (its parent must exist) and, in Bonsai output mode, checks that it holds no
-// earlier text output. Logs the reason and returns false if the run cannot write there.
+// Creates the output folder (its parent must exist). Logs the reason and returns false if it cannot.
 bool prepare_output_folder(const SanityOptions &options);
 
-// Writes sanity_command.txt: timestamp, version, method, output mode and the command line.
+// Writes sanity_command.txt: timestamp, version, method, LTQ estimate, output mode and the command line.
 void write_command_metadata(const SanityOptions &options, int argc, char **argv);
 
-// One numerical result per gene, each written to its own file.
+// One numerical result per gene, each written to its own file. The file name says what the file holds,
+// whatever the run's options; see field_file_name in sanity_output.cpp.
 enum class OutputField
 {
     Ltq,                // x*_gc, the posterior log transcription quotients (note Eq. 32; MARG: Eq. 47).
     LtqError,           // epsilon_gc, the posterior error bars on x_gc (note Eq. 41; MARG: Eq. 48).
     MeasuredLtq,        // x^m_gc, the measurement LTQs with the prior divided out (note Eq. 44).
     MeasuredLtqError,   // 1/sqrt(n_g f*_gc), the measurement error bars (note Eq. 46).
-    LogFoldChange,      // delta_gc = x*_gc - mu_g, the log fold change from the mean LTQ.
-    LogFoldChangeError, // epsilon_gc, the same error bar as LtqError, as read by Sanity_distance and Sanity_gene_correlation.
-    MeasuredLogFoldChange, // x^m_gc - mu_g, the measurement log fold change; Bonsai output mode only.
     MeanLtq,            // mu_g (note Eq. 33; MARG: Eq. 49).
     MeanLtqError,       // sigma_mu, the standard deviation of mu_g (note Eq. 43; MARG: Eq. 50).
     GeneVariance,       // v_g (note Eq. 25).
@@ -60,6 +57,8 @@ public:
     void close();
 
 private:
+    // NPY per-cell matrices and the likelihood table are float32, which carries the six decimals of the
+    // text output; the per-gene vectors are float64.
     enum class FileFormat { Text, Float64Npy, Float32Npy };
 
     struct FieldFile
@@ -70,9 +69,8 @@ private:
         std::unique_ptr<npy::NpyStreamWriter> npy;
     };
 
-    // Opens the file of `field`; `file_name` overrides the field's own base name (Bonsai output mode).
-    void add_field(OutputField field, FileFormat format, const std::string &text_suffix, std::size_t num_columns,
-                   const char *file_name = nullptr);
+    // Opens the file of `field`.
+    void add_field(OutputField field, FileFormat format, const std::string &text_suffix, std::size_t num_columns);
 
     std::string out_folder_;
     std::vector<FieldFile> files_;
