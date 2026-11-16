@@ -155,8 +155,8 @@ ParseResult parse_options(int argc, char **argv, SanityOptions &options)
 
     bool have_input_file = false;
     std::string extended_output("false");
-    std::string variance_method_str("MAP");
-    std::string ltq_estimate_str; // Empty until given: the default depends on the output mode.
+    std::string variance_method_str; // Empty until given: the default depends on the output mode.
+    std::string ltq_estimate_str;    // Likewise.
     for (int i = 1; i < argc; i++)
     {
         // Anything that is not a known option, or the value of one, is rejected. Without this, a
@@ -235,38 +235,37 @@ ParseResult parse_options(int argc, char **argv, SanityOptions &options)
     }
 
     options.extended_output = (extended_output == "true" || extended_output == "1");
+
+    // Bonsai output mode is the preset -npy -v_m EAP --ltq-estimate measured: Bonsai reads the NPY
+    // measurement files and needs the EAP gene variances. An explicit -v_m that says otherwise is a
+    // contradiction, not something to override silently.
+    if (options.bonsai_output_mode)
+    {
+        options.npy_output = true;
+        if (variance_method_str.empty())
+            variance_method_str = "EAP";
+        if (ltq_estimate_str.empty())
+            ltq_estimate_str = "measured";
+    }
+    if (variance_method_str.empty())
+        variance_method_str = "MAP";
+    if (ltq_estimate_str.empty())
+        ltq_estimate_str = "posterior";
     if (!parse_variance_method(variance_method_str, options.variance_method))
         return ParseResult::Error;
+    if (!parse_ltq_estimate(ltq_estimate_str, options.ltq_estimate))
+        return ParseResult::Error;
+    if (options.bonsai_output_mode && options.variance_method != VarianceMethod::EAP)
+    {
+        logging_debug("Bonsai output mode uses EAP; drop -v_m or pass -v_m EAP.");
+        return ParseResult::Error;
+    }
 
     // -npy writes no numerical text, so there is nothing left for -gz to compress.
-    if (options.npy_output && options.gzip_output && !options.bonsai_output_mode)
+    if (options.npy_output && options.gzip_output)
     {
         logging_debug("-npy overrides -gz: the NPY files are not compressed.");
         options.gzip_output = false;
-    }
-
-    // The default files hold the posterior estimates; Bonsai consumes the measurement estimates.
-    if (ltq_estimate_str.empty())
-        ltq_estimate_str = options.bonsai_output_mode ? "measured" : "posterior";
-    if (!parse_ltq_estimate(ltq_estimate_str, options.ltq_estimate))
-        return ParseResult::Error;
-
-    // Bonsai output mode writes one fixed set of files, whatever -e, -gz and -npy say. It does need
-    // MAP: that is a choice of inference, not of output, so it is not overridden silently.
-    if (options.bonsai_output_mode)
-    {
-        if (options.variance_method != VarianceMethod::MAP)
-        {
-            logging_debug("Bonsai output mode requires MAP; use -v_m MAP.");
-            return ParseResult::Error;
-        }
-        if (options.ltq_estimate == LtqEstimate::Both)
-        {
-            logging_debug("Bonsai output mode holds one kind of LTQ estimate; use --ltq-estimate posterior or measured.");
-            return ParseResult::Error;
-        }
-        if (options.extended_output || options.gzip_output || options.npy_output)
-            logging_debug("Bonsai output mode ignores -e, -gz and -npy.");
     }
 
     options.in_file_extension = detect_input_type(options.in_file);
@@ -285,11 +284,11 @@ void show_usage()
               << "\t-mtx_cells,--mtx_cell_name_file\tSpecity the cell name text file (only needed if .mtx input file)\n"
               << "\t-d,--destination\tSpecify the destination path (default: pwd)\n"
               << "\t-n,--n_threads\t\tSpecify the number of threads to be used (default: 4)\n"
-              << "\t-e,--extended_output\tOption to print extended output (default: false, choice: false,0,true,1)\n"
+              << "\t-e,--extended_output\tOption to print every output file (default: false, choice: false,0,true,1)\n"
               << "\t-gz,--gzip_output\tCompress the numerical text output files with gzip (.gz); overridden by -npy\n"
-              << "\t-npy,--npy_output\tWrite the numerical output files as float64 NumPy arrays (.npy) instead of text; overrides -gz\n"
-              << "\t--bonsai-output-mode\tWrite only the four numerical files and IDs/metadata required by Bonsai (NPY, MAP); ignores -e, -gz and -npy\n"
-              << "\t-ltq,--ltq-estimate\tWhich LTQ estimates the default output holds: posterior (x* with posterior error bars, default), measured (x^m with measurement error bars; the default in Bonsai output mode) or both; -e 1 writes both kinds\n"
+              << "\t-npy,--npy_output\tWrite the numerical output files as NumPy arrays (.npy; float32 matrices, float64 per-gene vectors) instead of text; overrides -gz\n"
+              << "\t--bonsai-output-mode\tThe preset for Bonsai: -npy -v_m EAP --ltq-estimate measured\n"
+              << "\t-ltq,--ltq-estimate\tWhich per-cell LTQ estimates are written: posterior (x* with posterior error bars, default), measured (x^m with measurement error bars; the default in Bonsai output mode) or both; -e 1 writes both kinds\n"
               << "\t-vmin,--variance_min\tMinimal value of variance in log transcription quotient (default: 0.001)\n"
               << "\t-vmax,--variance_max\tMaximal value of variance in log transcription quotient (default: 50)\n"
               << "\t-nbin,--number_of_variance_bins\tNumber of bins for the variance in log transcription quotient  (default: 160)\n"

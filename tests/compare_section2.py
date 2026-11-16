@@ -263,16 +263,14 @@ def main():
         check_identities(counts[g], log_N, sum_N, grid, lambda l, v, t: report(l, v, t, names[g]))
 
     quantities = {  # Sanity file -> (reference key, kind)
-        "log_transcription_quotients": ("x", "value"),
-        "ltq_error_bars": ("eps_sq", "sqrt"),
-        "measured_ltq": ("x_m", "value"),
-        "measured_ltq_error_bars": ("x_m_err_sq", "sqrt"),
-        "mu": ("mu", "value"),
-        "d_mu": ("sigma_mu_sq", "sqrt"),
-        "variance": ("v", "value"),
-        "likelihood": ("P", "value"),
-        "delta": ("delta", "value"),
-        "d_delta": ("eps_sq", "sqrt"),
+        "ltqs_posterior": ("x", "value"),
+        "ltqs_posterior_error_bars": ("eps_sq", "sqrt"),
+        "ltqs_measurement_approx": ("x_m", "value"),
+        "ltqs_measurement_approx_error_bars": ("x_m_err_sq", "sqrt"),
+        "gene_means": ("mu", "value"),
+        "gene_means_error_bars": ("sigma_mu_sq", "sqrt"),
+        "gene_variances": ("v", "value"),
+        "gene_variances_likelihood": ("P", "value"),
     }
     for method in ["MAP", "MLE", "EAP", "MARG"]:
         out = directory / f"out_{method}"
@@ -285,7 +283,6 @@ def main():
         reference = {key: [] for key in keys}
         for g in range(counts.shape[0]):
             est = fit_gene(counts[g], log_N, sum_N, grid, method)
-            est["delta"] = est["x"] - est["mu"]
             for key in keys:
                 reference[key].append(est[key])
         print(f"Method {method}: Sanity versus the reference ({counts.shape[0]} genes)")
@@ -300,8 +297,10 @@ def main():
                 expected = np.sqrt(expected)
             expected = expected.reshape(sanity.shape)
             # x^m divides by n f* v, which amplifies the difference between the two solvers of q; measure it relative.
+            # The per-cell matrices and the likelihood table are float32 on disk, the per-gene vectors float64.
             scale = 1.0 + np.abs(expected)
-            report(file_name + " max |diff|/(1+|ref|)", (np.abs(sanity - expected) / scale).max(), 1e-7, method)
+            tolerance = 1e-6 if sanity.dtype == np.float32 else 1e-7
+            report(file_name + " max |diff|/(1+|ref|)", (np.abs(sanity.astype(float) - expected) / scale).max(), tolerance, method)
 
     if failures:
         print(f"FAILED: {len(failures)} checks:")

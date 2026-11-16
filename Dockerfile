@@ -3,9 +3,9 @@ FROM ubuntu:26.04
 
 ##### METADATA #####
 LABEL base.image="ubuntu:26.04"
-LABEL version="2.0"
+LABEL version="3.0"
 LABEL software="Sanity"
-LABEL software.version="2.0"
+LABEL software.version="3.0"
 LABEL software.description="Sanity"
 LABEL software.website="https://github.com/jmbreda/Sanity"
 LABEL software.documentation="https://github.com/jmbreda/Sanity"
@@ -18,7 +18,7 @@ LABEL maintainer.lab="Erik van Nimwegen Lab"
 
 ##### VARIABLES #####
 # Use variables for convenient updates/re-usability
-ENV SOFTWARE_VERSION=2.0
+ENV SOFTWARE_VERSION=3.0
 
 RUN apt-get update \
   && apt-get install -y tzdata \
@@ -44,9 +44,9 @@ CMD ["--help"]
 
 #### USAGE ####
 # Build:
-# docker build -t jmbreda/sanity:2.0 .
+# docker build -t jmbreda/sanity:3.0 .
 # Show the available options:
-#  docker run --rm jmbreda/sanity:2.0
+#  docker run --rm jmbreda/sanity:3.0
 # Run Sanity on data in the current directory, writing results back to it:
-#  docker run --rm -v "$PWD":/mnt -w /mnt jmbreda/sanity:2.0 -f [data.tsv] -d sanity_results -e 1 -n 1
+#  docker run --rm -v "$PWD":/mnt -w /mnt jmbreda/sanity:3.0 -f [data.tsv] -d sanity_results -e 1 -n 1
 #### ####
