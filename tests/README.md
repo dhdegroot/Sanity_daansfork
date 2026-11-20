@@ -64,8 +64,7 @@ output of all four `-v_m` methods with these, on a synthetic 24 x 60 matrix or
 on a TSV given with `--counts`, and checks the identities the note relies on
 (`sum_c f*_c = 1`, `<x*> = log(n_g) - q_g`, Eqs. 40, 41 and 43 against the
 numerically inverted precision matrix of Eq. 35, and the constant offset
-between Eqs. 36–38 and the previous likelihood, see
-`docs/likelihood_equivalence.md`). It exits with 1 if any check fails.
+between Eqs. 36–38 and the previous likelihood). It exits with 1 if any check fails.
 
 ## Inference changes
 

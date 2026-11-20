@@ -112,7 +112,7 @@ struct BinSummary
 // then moved to the actual mean <x*>: sum_c (x_c - <x>)^2 = sum_c (x_c - m)^2 - C (<x> - m)^2 for any m.
 // log1p is used for log(n_g f*_gc v_b + 1) because n_g f*_gc v_b is often much smaller than one.
 // This L(v_b) equals the one of the 2021 SI (Eqs. 20, 32, 33) up to a constant that does not depend on v_b, so the
-// posterior over the grid and the selected v_g are unchanged; see docs/likelihood_equivalence.md.
+// posterior over the grid and the selected v_g are unchanged.
 static BinSummary bin_log_likelihood(const std::vector<double>& umi_counts_c, const std::vector<double>& fractions_c,
                                      const std::vector<double>& log_cell_totals_c, double gene_total, double log_gene_total,
                                      double bin_variance, double log_weighted_total)

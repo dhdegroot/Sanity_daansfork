@@ -178,7 +178,7 @@ def check_identities(counts, log_N, sum_N, grid, report):
     report("Eq. 40 vs inv(M), max abs", np.abs(cov - cov_40).max(), 1e-8 * np.abs(cov).max())
     report("Eq. 41 vs diag inv(M), max rel", (np.abs(np.diag(cov) - est["eps_sq"]) / np.diag(cov)).max(), 1e-8)
     report("Eq. 43 vs mean of inv(M), rel", abs(cov.sum() / C ** 2 - est["sigma_mu_sq"]) / est["sigma_mu_sq"], 1e-8)
-    # Eqs. 36-38 minus the SI's L(v) is constant over the grid (docs/likelihood_equivalence.md).
+    # Eqs. 36-38 minus the SI's L(v) is constant over the grid.
     diff = []
     for k, vk in enumerate(grid):
         fk = fractions_at(est["q_k"][k], counts, n, vk, log_N)

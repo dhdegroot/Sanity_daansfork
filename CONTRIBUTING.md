@@ -75,10 +75,9 @@ python3 compare.py
 ## Source layout
 
 The top level of `src` holds the Sanity-specific code: the three programs (`sanity_main.cpp`, `sanity_distance.cpp`, `sanity_gene_correlation.cpp`), the per-gene fit (`gene_fit`), the solver for the cell fractions at one gene variance (`fit_frac`) and `Version.h`.
-The fit implements Section 2 of E. van Nimwegen's note "Getting proper error-bars in Sanity"; comments cite its
-equation numbers ("note Eq. 41") or those of the 2021 SI ("SI Eq. 34"). `docs/output_logic.md` maps every output
-file to its equation, `docs/likelihood_equivalence.md` relates the likelihood to the SI's, and
-`docs/measured_ltq_linearisation.md` discusses the measurement LTQs. Within `gene_fit.cpp`, per-cell quantities are
+The fit implements Section 2 of E. van Nimwegen's note "Getting proper error-bars in Sanity"; comments say in a
+few words what each quantity is, and cite the equation numbers of the 2021 SI where it has them ("SI Eq. 34").
+Within `gene_fit.cpp`, per-cell quantities are
 computed in passes over the cells rather than stored, and anything averaged over the variance grid (MARG) is
 accumulated bin by bin; keep it that way, and keep multithreaded runs bit-identical to `-n 1` (no reductions whose
 order depends on the thread count).

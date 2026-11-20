@@ -8,7 +8,7 @@ J Breda, M Zavolan, E van Nimwegen - Nature Biotechnology, 2021](https://www.nat
 Sanity infers the log expression levels *x<sub>gc</sub>* of gene *g* in cell *c* by filtering out 
 the Poisson noise on the UMI count matrix *n<sub>gc</sub>* of gene *g* in cell *c*.
 
-The fit estimates the log transcription quotients (LTQs) *x<sub>gc</sub>* directly, with error bars from the full posterior over the cells, following Section 2 of E. van Nimwegen's note "Getting proper error-bars in Sanity"; the equations behind every output file are listed in [docs/output_logic.md](docs/output_logic.md).
+The fit estimates the log transcription quotients (LTQs) *x<sub>gc</sub>* directly, with error bars from the full posterior over the cells, following Section 2 of E. van Nimwegen's note "Getting proper error-bars in Sanity".
 
 
 
@@ -75,9 +75,7 @@ the uncertainty on the gene mean), the mean LTQ *&mu;<sub>g</sub> = &lang;x\*&ra
 measurement LTQs *x<sup>m</sup><sub>gc</sub>* (the posterior with the prior divided out) with error bars
 *1/sqrt(n<sub>g</sub> f\*<sub>gc</sub>)*. MARG makes the same estimates at every grid point and averages them over the
 posterior of *v<sub>g</sub>*, bin by bin. The formulas are those of Section 2 of the note "Getting proper error-bars in
-Sanity" (Eqs. 31–50); [docs/output_logic.md](docs/output_logic.md) maps every output file to its equation, and
-[docs/likelihood_equivalence.md](docs/likelihood_equivalence.md) shows that the selected *v<sub>g</sub>* is the same as
-in version 2.0. Zero-count cells get the same posterior error bar as every other cell; the earlier asymmetric
+Sanity" (Eqs. 31–50), and the selected *v<sub>g</sub>* is the same as in version 2.0. Zero-count cells get the same posterior error bar as every other cell; the earlier asymmetric
 zero-count error bar is gone. Runs with different `-n` give bit-identical results.
 
 Text output uses fixed six-decimal formatting. Each inference worker formats
@@ -102,8 +100,7 @@ around *x\*<sub>gc</sub>* makes of it (Eqs. 44 and 46 of the note). They are a l
 for a count far above the count expected at the gene mean, *x<sup>m</sup><sub>gc</sub>* lies far from any plausible
 LTQ (it can even be positive) with a correspondingly wide error bar. Read as a precision and a slope they are what a
 downstream method with a prior of its own needs, and that is how Bonsai uses them; do not plot or threshold
-`ltqs_measurement_approx` as a value. See `docs/measured_ltq_linearisation.md` for the derivation and the numbers, and
-for the alternative expansion that was tried and dropped.
+`ltqs_measurement_approx` as a value.
 
 The per-cell matrices are TSV files with a header line of the cell IDs and one line per gene that starts with the
 gene ID:

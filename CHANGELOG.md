@@ -17,8 +17,8 @@
   `ltqs_measurement_approx` instead of dividing the prior out themselves (SI Eqs. 62, 63), which was inexact once
   the posterior error bars carried the uncertainty on the gene mean.
 - The fit estimates the log transcription quotients x_gc directly instead of the log fold changes, following
-  Section 2 of E. van Nimwegen's note "Getting proper error-bars in Sanity" (see `docs/output_logic.md`).
-  The selected gene variance v_g is unchanged (`docs/likelihood_equivalence.md`), and so is
+  Section 2 of E. van Nimwegen's note "Getting proper error-bars in Sanity".
+  The selected gene variance v_g is unchanged, and so is
   delta_gc = x*_gc - mu_g; mu_g is now the mean of x*_gc over the cells (a shift of log(n_g) - psi(n_g)), and the
   error bars on x_gc and mu_g come from the full posterior covariance over the cells (note Eqs. 41, 43).
 - The asymmetric error bar for zero-count cells is gone; every cell gets the posterior error bar. MARG is several
