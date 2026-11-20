@@ -1,4 +1,5 @@
-# Timestamp: 2026-08-06 22:32:11
-# Sanity version: 2.0
+# Timestamp: 2026-11-16 22:33:55
+# Sanity version: 3.0.0
 # Method: EAP
-../bin/Sanity -f count_table.tsv -d default_output_EAP -v_m EAP -e 1
+# LTQ estimate: posterior
+../bin/Sanity -f count_table.tsv -d default_output_EAP -v_m EAP -e 1 -n 4

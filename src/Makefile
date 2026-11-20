@@ -29,41 +29,62 @@ CFLAGS= -I. -std=c++17 -O3 $(ARCH_FLAG) -flto=auto -fopenmp -fno-math-errno
 LDFLAGS= -lz
 BINDIR := ../bin
 
-Sanity: calc_true_variation_parallel_prior_mu_sigma.o ReadInputFiles.o FitFrac.o FukushimaLambertW.o Digamma_Trigamma.o npy_writer.o | $(BINDIR)
-	$(CC) $(CFLAGS) -o $(BINDIR)/Sanity calc_true_variation_parallel_prior_mu_sigma.o ReadInputFiles.o FitFrac.o FukushimaLambertW.o Digamma_Trigamma.o npy_writer.o $(LDFLAGS)
+IO := helpers/io
+MATH := helpers/math
+
+SANITY_OBJS := sanity_main.o sanity_options.o sanity_input.o sanity_output.o gene_fit.o fit_frac.o \
+    read_input_files.o dense_row_reader.o npy_writer.o FukushimaLambertW.o
+
+Sanity: $(SANITY_OBJS) | $(BINDIR)
+	$(CC) $(CFLAGS) -o $(BINDIR)/Sanity $(SANITY_OBJS) $(LDFLAGS)
 
 $(BINDIR):
 	mkdir -p $(BINDIR)
 
-calc_true_variation_parallel_prior_mu_sigma.o: calc_true_variation_parallel_prior_mu_sigma.cpp ReadInputFiles.h FitFrac.h FukushimaLambertW.h Digamma_Trigamma.h Writer.hpp npy_writer.hpp Version.h
-	$(CC) $(CFLAGS) -c calc_true_variation_parallel_prior_mu_sigma.cpp
+sanity_main.o: sanity_main.cpp gene_fit.hpp logging.hpp sanity_options.hpp sanity_input.hpp sanity_output.hpp Version.h $(IO)/read_input_files.hpp $(IO)/dense_row_reader.hpp $(IO)/writer.hpp $(IO)/npy_writer.hpp
+	$(CC) $(CFLAGS) -c sanity_main.cpp
 
-npy_writer.o: npy_writer.cpp npy_writer.hpp
-	$(CC) $(CFLAGS) -c npy_writer.cpp
+sanity_options.o: sanity_options.cpp sanity_options.hpp gene_fit.hpp logging.hpp
+	$(CC) $(CFLAGS) -c sanity_options.cpp
 
-ReadInputFiles.o: ReadInputFiles.cpp ReadInputFiles.h
-	$(CC) $(CFLAGS) -c ReadInputFiles.cpp
+sanity_input.o: sanity_input.cpp sanity_input.hpp sanity_options.hpp gene_fit.hpp logging.hpp $(IO)/read_input_files.hpp
+	$(CC) $(CFLAGS) -c sanity_input.cpp
 
-FitFrac.o: FitFrac.cpp FitFrac.h FukushimaLambertW.h
-	$(CC) $(CFLAGS) -c FitFrac.cpp
+sanity_output.o: sanity_output.cpp sanity_output.hpp sanity_options.hpp gene_fit.hpp logging.hpp Version.h $(IO)/writer.hpp $(IO)/npy_writer.hpp
+	$(CC) $(CFLAGS) -c sanity_output.cpp
 
-FukushimaLambertW.o: FukushimaLambertW.cc FukushimaLambertW.h
-	$(CC) $(CFLAGS) -c FukushimaLambertW.cc
+gene_fit.o: gene_fit.cpp gene_fit.hpp fit_frac.hpp
+	$(CC) $(CFLAGS) -c gene_fit.cpp
 
-Digamma_Trigamma.o: Digamma_Trigamma.cpp Digamma_Trigamma.h
-	$(CC) $(CFLAGS) -c Digamma_Trigamma.cpp
+fit_frac.o: fit_frac.cpp fit_frac.hpp $(MATH)/FukushimaLambertW.h
+	$(CC) $(CFLAGS) -c fit_frac.cpp
 
-Sanity_distance: compute_distance.o | $(BINDIR)
-	$(CC) $(CFLAGS) -o $(BINDIR)/Sanity_distance compute_distance.o
+dense_row_reader.o: $(IO)/dense_row_reader.cpp $(IO)/dense_row_reader.hpp $(IO)/read_input_files.hpp
+	$(CC) $(CFLAGS) -c $(IO)/dense_row_reader.cpp
 
-compute_distance.o: compute_distance.cpp Version.h
-	$(CC) $(CFLAGS) -c compute_distance.cpp
+npy_writer.o: $(IO)/npy_writer.cpp $(IO)/npy_writer.hpp
+	$(CC) $(CFLAGS) -c $(IO)/npy_writer.cpp
 
-Sanity_gene_correlation:  compute_gene_correlations.o | $(BINDIR)
-	$(CC) $(CFLAGS) -o $(BINDIR)/Sanity_gene_correlation compute_gene_correlations.o
+read_input_files.o: $(IO)/read_input_files.cpp $(IO)/read_input_files.hpp $(IO)/fast_mtx_reader.hpp
+	$(CC) $(CFLAGS) -c $(IO)/read_input_files.cpp
 
-compute_gene_correlations.o: compute_gene_correlations.cpp Version.h
-	$(CC) $(CFLAGS) -c compute_gene_correlations.cpp
+FukushimaLambertW.o: $(MATH)/FukushimaLambertW.cc $(MATH)/FukushimaLambertW.h
+	$(CC) $(CFLAGS) -c $(MATH)/FukushimaLambertW.cc
+
+digamma_trigamma.o: $(MATH)/digamma_trigamma.cpp $(MATH)/digamma_trigamma.hpp
+	$(CC) $(CFLAGS) -c $(MATH)/digamma_trigamma.cpp
+
+Sanity_distance: sanity_distance.o | $(BINDIR)
+	$(CC) $(CFLAGS) -o $(BINDIR)/Sanity_distance sanity_distance.o
+
+sanity_distance.o: sanity_distance.cpp Version.h
+	$(CC) $(CFLAGS) -c sanity_distance.cpp
+
+Sanity_gene_correlation:  sanity_gene_correlation.o | $(BINDIR)
+	$(CC) $(CFLAGS) -o $(BINDIR)/Sanity_gene_correlation sanity_gene_correlation.o
+
+sanity_gene_correlation.o: sanity_gene_correlation.cpp Version.h
+	$(CC) $(CFLAGS) -c sanity_gene_correlation.cpp
 
 .PHONY: clean
 
