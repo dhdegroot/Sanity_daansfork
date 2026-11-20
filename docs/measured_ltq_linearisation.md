@@ -177,7 +177,7 @@ Per gene, the driver is the mean count per cell $n/C$ (synthetic 3000 × 3000 ma
 10 %, 1092 above 90 %), so a cut at 50 % is robust. It flags 47 % of the synthetic genes and 34 % of the real ones,
 holding 0.5 % and 1.8 % of all UMIs but about half of the detected transcriptome, and leaves the mixed band (187 of
 283 real genes with 10 to 90 % bad entries) unflagged. The natural flag is per entry: displacement above 1, available
-today from the standard output as `measured_ltq` minus `log_transcription_quotients`, or from the counts as
+today from the output as `ltqs_measurement_approx` minus `ltqs_posterior`, or from the counts as
 $n_c / (N_c e^{x^*_c}) - 1$. The entries a gene flag would discard, the nonzero counts of lowly expressed genes, are
 the only informative entries those genes have. The posterior output $x^*_c \pm \epsilon_c$ is unaffected throughout.
 
@@ -295,10 +295,24 @@ it stands. Exact consistency needs the counts themselves.
   counts) and let it subtract the Sanity prior from the posterior precision there, where the full Poisson likelihood
   can be used. This is the exact version of option 1.
 
-The code on `clean-up-meas` implements both: `--measured-expansion posterior-mode` (the default) is Eqs. 44 and 46
-as written, `--measured-expansion likelihood-maximum` is option 1 with Eq. 44/46 kept for zero counts (Sections 6.1
-and 6.2). Both write `measured_ltq`, `measured_ltq_error_bars`, and `delta.npy`/`d_delta.npy` in Bonsai output mode,
-so that the behaviour above can be measured on the simulated data (`docs/hpc_comparison_prompt.md`).
+## 7 Outcome
+
+Option 1 was implemented as `--measured-expansion likelihood-maximum` (with Eq. 44/46 kept for zero counts, Sections
+6.1 and 6.2) next to Eq. 44/46 as `posterior-mode`, and the two were compared on four simulated 17,499 × 1,024
+matrices with known truth (`docs/hpc_comparison_prompt.md`; the report lives outside the repository). Standalone,
+option 1 is the better estimate: bounded, never positive, RMSE 1.3–1.6 on nonzero counts against 7–36 for Eq. 44.
+As Bonsai input the ranking reverses: with Bonsai honouring `# LTQ estimate: measured` (no second prior division),
+Eq. 44 gives the lowest error of all inputs in every count bin (RMSE 1.55 against 1.64 for Sanity's own posterior
+and 1.84 for option 1) and the same trees as before, whereas option 1 biases Bonsai upward by about 1.2 at counts of
+1 and 2 and gives slightly worse trees. The reason is the one Section 2 describes from the other side: for a single
+count at a gene expected at 0.01–0.1 counts, the true log-likelihood is nearly linear with slope $n_c$ over the whole
+region where any sensible prior lives, and Eq. 44 expands there, while option 1 puts a Gaussian of width $1/\sqrt{n_c}$
+at the peak, several log units above, and a tree prior tighter than Sanity's gene prior is then pulled towards it.
+Which expansion point is right depends on where the downstream posterior lands, which only the downstream model knows.
+
+Since the measured files exist for Bonsai, the option was removed again and Eq. 44/46 is the only measurement LTQ
+(the code is in the history of `clean-up-meas`, commit `fb274f2`). The exact treatment, re-expanding the Poisson
+log-likelihood at the downstream posterior from the counts themselves, is left for Bonsai.
 All numbers in Sections 3, 5 and 6 come from MAP runs on `tests/count_table.tsv` (283 × 498) and on a synthetic
 3000 × 3000 matrix (Poisson counts from log-normal LTQs, $n/C$ spread evenly in log); the scripts are not part of the
 repository.

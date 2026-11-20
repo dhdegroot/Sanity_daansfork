@@ -52,7 +52,7 @@ def main():
             for method in ["MAP", "MLE", "EAP", "MARG"]:
                 for configuration in [[], ["-nbin", "19", "-vmin", "0.01", "-vmax", "20"]]:
                     formats = [[], ["-npy"]]
-                    if method == "MAP":
+                    if method == "EAP":
                         formats += [["--bonsai-output-mode"]]
                     for output_format in formats:
                         pair = directory/f"pair_{checks}"

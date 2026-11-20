@@ -29,8 +29,8 @@ cells give
 | $\langle v \rangle$, $v - \langle v \rangle$ | $\tfrac{v}{C}\sum_c \tfrac{1}{n f^*_c v + 1}$ and $\tfrac{v}{C}\sum_c \tfrac{n f^*_c v}{n f^*_c v + 1}$ (no cancellation) | 1 |
 | $\epsilon_c^2$ | $v_c + \dfrac{1}{C}\dfrac{v_c^2}{v - \langle v \rangle}$ (Eq. 41) | 2 |
 | $\sigma_\mu^2$ | Eq. 43 | after pass 1 |
-| $x^m_c$ | $x^*_c + \dfrac{x^*_c - \langle x^* \rangle}{n f^*_c v}$ (Eq. 44); with `--measured-expansion likelihood-maximum` and $n_c > 0$: $\log(n_c / N_c)$ | 2 |
-| $(\epsilon^m_c)^2$ | $1 / (n f^*_c)$ (Eq. 46); with `--measured-expansion likelihood-maximum` and $n_c > 0$: $1 / n_c$ | 2 |
+| $x^m_c$ | $x^*_c + \dfrac{x^*_c - \langle x^* \rangle}{n f^*_c v}$ (Eq. 44) | 2 |
+| $(\epsilon^m_c)^2$ | $1 / (n f^*_c)$ (Eq. 46) | 2 |
 | $v$ | $v_{k^*}$ | |
 
 The renormalised variances $v_c$ are computed in both passes and never stored (Section 2.10).
@@ -53,61 +53,58 @@ $\sigma_\mu^2 = \psi_1(n)$ (SI Eqs. 44–47). $\mu$ therefore shifts by $\log n 
 
 ## 2 Files
 
-Every numerical file is one row per gene. Text files have six decimals; matrices carry the gene name in the first
-column and the cell names in a header line; the per-gene files hold one number per line. `-gz` gzips the text files,
-`-npy` writes float64 `.npy` instead (matrices `(genes, cells)`, per-gene files `(genes, 1)`, `likelihood`
-`(genes, bins)`, plus `likelihood_grid.npy` `(bins, 1)`); `geneID.txt` and `cellID.txt` are written whenever the
-files do not carry names themselves (`-npy` or `-e 1`).
+Every numerical file is one row per gene, and every file name says what the file holds, whatever the run's
+options. Text files have six decimals; matrices carry the gene name in the first column and the cell names in a
+header line; the per-gene files hold one number per line. `-gz` gzips the text files, `-npy` writes `.npy` instead:
+matrices `(genes, cells)` and `gene_variances_likelihood` `(genes, bins)` as float32, the per-gene files `(genes, 1)`
+and `gene_variances_grid.npy` `(bins, 1)` as float64. `geneID.txt`, `cellID.txt` and `sanity_command.txt` are
+always written.
 
 | file | value | error bar is |
 |:--|:--|:--|
-| `log_transcription_quotients` | $x^*_c$ (MARG: $x_c$) | |
-| `ltq_error_bars` | $\epsilon_c$ (Eq. 41 / 48) | standard deviation; includes the $\mu$ uncertainty (the $1/C$ term) |
-| `measured_ltq` | $x^m_c$ (Eq. 44; MARG: averaged). `-mx likelihood-maximum`: $\log(n_c/N_c)$ for $n_c > 0$, Eq. 44 for $n_c = 0$ | |
-| `measured_ltq_error_bars` | $1/\sqrt{n f^*_c}$ (Eq. 46; MARG: averaged as Eq. 48). `-mx likelihood-maximum`: $1/\sqrt{n_c}$ for $n_c > 0$, Eq. 46 for $n_c = 0$ | standard deviation |
-| `mu` | $\mu$ (Eq. 33 / 49) | |
-| `d_mu` | $\sigma_\mu$ (Eq. 43 / 50) | standard deviation |
-| `variance` | $v$ | |
-| `delta` | $x^*_c - \mu$ | |
-| `d_delta` | $\epsilon_c$, identical to `ltq_error_bars` | kept for `Sanity_distance` / `Sanity_gene_correlation` |
-| `likelihood` | $P_k$, with the grid $v_k$ as header line | |
+| `ltqs_posterior` | $x^*_c$ (MARG: $x_c$) | |
+| `ltqs_posterior_error_bars` | $\epsilon_c$ (Eq. 41 / 48) | standard deviation; includes the $\mu$ uncertainty (the $1/C$ term) |
+| `ltqs_measurement_approx` | $x^m_c$ (Eq. 44; MARG: averaged) | |
+| `ltqs_measurement_approx_error_bars` | $1/\sqrt{n f^*_c}$ (Eq. 46; MARG: averaged as Eq. 48) | standard deviation |
+| `gene_means` | $\mu$ (Eq. 33 / 49) | |
+| `gene_means_error_bars` | $\sigma_\mu$ (Eq. 43 / 50) | standard deviation |
+| `gene_variances` | $v$ | |
+| `gene_variances_likelihood` | $P_k$, with the grid $v_k$ as header line (`gene_variances_grid.npy` with `-npy`) | |
 
 ### Which run writes which files
 
-`--ltq-estimate` (`-ltq`) chooses the *default* set; `-e 1` writes everything whatever the flag says.
+`--ltq-estimate` (`-ltq`) chooses the per-cell matrices; `-e 1` writes everything whatever the flag says; the
+per-gene vectors are always written.
 
 | mode | files |
 |:--|:--|
-| default (`-ltq posterior`) | `log_transcription_quotients`, `ltq_error_bars` |
-| `-ltq measured` | `measured_ltq`, `measured_ltq_error_bars` |
+| default (`-ltq posterior`) | `ltqs_posterior`, `ltqs_posterior_error_bars` |
+| `-ltq measured` | `ltqs_measurement_approx`, `ltqs_measurement_approx_error_bars` |
 | `-ltq both` | the four files above |
-| `-e 1` (any `-ltq`) | the four files above + `mu`, `d_mu`, `variance`, `delta`, `d_delta`, `likelihood`, `geneID.txt`, `cellID.txt` |
+| `-e 1` (any `-ltq`) | the four files above + `gene_variances_likelihood` |
+| always | `gene_means`, `gene_means_error_bars`, `gene_variances`, `geneID.txt`, `cellID.txt`, `sanity_command.txt` |
 
-`sanity_command.txt` records `# Method:`, `# LTQ estimate:` and `# Measured expansion:`.
+`sanity_command.txt` records `# Sanity version:`, `# Method:`, `# LTQ estimate:` and, in Bonsai output mode,
+`# Output mode: bonsai`.
 
 ### Bonsai output mode
 
-`--bonsai-output-mode` (requires MAP; ignores `-e`, `-gz`, `-npy`) writes the fixed set `delta.npy`, `d_delta.npy`
-(float32, `(genes, cells)`), `mu.npy`, `variance.npy` (float64, `(genes, 1)`), `geneID.txt`, `cellID.txt`,
-`sanity_command.txt`. The file names are the same as before, the content depends on `--ltq-estimate`:
-
-| `--ltq-estimate` | `delta.npy` | `d_delta.npy` |
-|:--|:--|:--|
-| `measured` (default in this mode) | $x^m_c - \mu$ | $1/\sqrt{n f^*_c}$ |
-| `posterior` | $x^*_c - \mu$ | $\epsilon_c$ |
-
-`mu.npy` = $\mu$ and `variance.npy` = $v$ in both cases; with `--measured-expansion likelihood-maximum` the
-`measured` row holds $\log(n_c/N_c) - \mu$ and $1/\sqrt{n_c}$ for nonzero counts. `sanity_command.txt` says which it
-is (`# LTQ estimate:`, `# Measured expansion:` and the `# Output:` line).
+`--bonsai-output-mode` is the preset `-npy -v_m EAP --ltq-estimate measured`, nothing more: Bonsai reads
+`ltqs_measurement_approx.npy`, `ltqs_measurement_approx_error_bars.npy`, `gene_means.npy` and `gene_variances.npy`
+by name, and checks `# Output mode: bonsai` and `# LTQ estimate: measured`. An explicit `-v_m` other than `EAP` is
+an error. Bonsai does not divide the prior out of these files, since Sanity has already done so exactly (Eqs. 44,
+46); dividing it out of the posterior files cell by cell would be wrong, because $\epsilon_c$ carries the shared
+uncertainty of $\mu$ (`docs/measured_ltq_linearisation.md`, Section 7).
 
 ## 3 Redundancy, for the discussion on a minimal output
 
-- `d_delta` = `ltq_error_bars`, and `delta` = `log_transcription_quotients` − `mu`: both exist only for the two
-  downstream tools, which read `delta.txt`, `d_delta.txt` and `variance.txt`.
-- With `-e 1`, `ltq_error_bars` and `mu`/`d_mu` are consistent by construction: $\epsilon_c^2 = v_c + v_c^2 / (C(v - \langle v\rangle))$
+- The log fold changes $\delta_c = x^*_c - \mu$ and their bars of versions before 3.0 are `ltqs_posterior` − `gene_means`
+  and `ltqs_posterior_error_bars`; `Sanity_distance` and `Sanity_gene_correlation` compute them on reading.
+- `ltqs_posterior_error_bars` and `gene_means`/`gene_means_error_bars` are consistent by construction: $\epsilon_c^2 = v_c + v_c^2 / (C(v - \langle v\rangle))$
   and $\sigma_\mu^2$ is the mean of the full covariance (Eq. 40), so $\sigma_\mu$ can be recomputed from $v$ and the $v_c$.
-- `measured_ltq` and its error bar are functions of $x^*_c$, $\mu$, $v$ and $n f^*_c = N_c e^{x^*_c}$ (Eqs. 44, 46),
+  The posterior variance with $\mu$ held fixed, $v_c = v / (n f^*_c v + 1)$ (Eq. 39), is not written; it is
+  $1 / v_c = 1 / (\epsilon^m_c)^2 + 1 / v$ from the measurement error bar and the gene variance.
+- `ltqs_measurement_approx` and its error bar are functions of $x^*_c$, $\mu$, $v$ and $n f^*_c = N_c e^{x^*_c}$ (Eqs. 44, 46),
   so at a fixed $v$ they are derivable from the posterior files plus the count totals (see `docs/measured_ltq_linearisation.md`).
-  For MARG they are not. With `--measured-expansion likelihood-maximum` the nonzero entries are functions of the
-  counts alone.
-- `likelihood` is only needed to reconstruct the posterior over $v$.
+  For MARG they are not.
+- `gene_variances_likelihood` is only needed to reconstruct the posterior over $v$.

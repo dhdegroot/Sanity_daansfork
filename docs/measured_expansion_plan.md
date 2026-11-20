@@ -2,7 +2,9 @@
 
 Branch `clean-up-meas`. Equation numbers refer to Section 2 of E. van Nimwegen's note; (B), (C), (E) to
 `docs/measured_ltq_linearisation.md`. Implemented as planned (commits "Add --measured-expansion …", "Check both
-measured expansions …", "Document --measured-expansion"); Section 4 is what the HPC comparison should confirm.
+measured expansions …", "Document --measured-expansion"), compared on simulated data, and **removed again**: the
+likelihood-maximum expansion is the better standalone estimate but the worse Bonsai input, and the measured files exist
+for Bonsai. Section 7 of the linearisation note has the outcome; this file is kept as the record of what was tried.
 
 ## 1 What changes
 

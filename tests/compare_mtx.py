@@ -57,7 +57,8 @@ def main():
                     assert f"reader={expected_reader}" in log, log
                     if expected_reader == "fast":
                         assert f"up to {threads or 4} threads" in log, log
-                    for field in ["delta", "d_delta", "mu", "variance"]:
+                    for field in ["ltqs_measurement_approx", "ltqs_measurement_approx_error_bars",
+                                  "gene_means", "gene_means_error_bars", "gene_variances"]:
                         np.testing.assert_array_equal(np.load(reference / (field + ".npy")),
                                                       np.load(output / (field + ".npy")))
                     for field in ["geneID.txt", "cellID.txt"]:

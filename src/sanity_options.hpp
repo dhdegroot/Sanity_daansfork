@@ -5,7 +5,7 @@
 
 #include "gene_fit.hpp"
 
-// Which LTQ estimates the default output holds (--ltq-estimate); -e 1 always writes both kinds.
+// Which LTQ estimates the per-cell output holds (--ltq-estimate); -e 1 always writes both kinds.
 enum class LtqEstimate
 {
     Posterior = 0, // x*_gc with the posterior error bars epsilon_gc (note Eqs. 32, 41); the default.
@@ -22,16 +22,15 @@ struct SanityOptions
     std::string cell_name_file = "none";    // Cell names of an MTX input (-mtx_cells).
     std::string out_folder = "./";          // Output folder, always ending in '/' (-d).
     int num_threads = 4;                    // -n
-    bool extended_output = false;           // -e
+    bool extended_output = false;           // -e: every output file.
     double variance_min = 0.001;            // v_min, the smallest candidate gene variance (SI Section S1.1.4).
     double variance_max = 50.0;             // v_max, the largest candidate gene variance.
     int num_bins = 160;                     // B, the number of grid points of the gene variance between v_min and v_max.
     VarianceMethod variance_method = VarianceMethod::MAP; // How to estimate v_g (see gene_fit.hpp).
     bool gzip_output = false;               // -gz: compress the numerical text files; overridden by -npy.
     bool npy_output = false;                // -npy: write the numerical output files as NPY; overrides -gz.
-    bool bonsai_output_mode = false;        // --bonsai-output-mode: the Bonsai file set; overrides -e, -gz and -npy.
-    LtqEstimate ltq_estimate = LtqEstimate::Posterior; // --ltq-estimate: what the default files hold; Bonsai mode defaults to Measured.
-    MeasuredExpansion measured_expansion = MeasuredExpansion::PosteriorMode; // --measured-expansion: the formula of the measurement LTQs (gene_fit.hpp).
+    bool bonsai_output_mode = false;        // --bonsai-output-mode: the preset -npy -v_m EAP --ltq-estimate measured.
+    LtqEstimate ltq_estimate = LtqEstimate::Posterior; // --ltq-estimate: which per-cell matrices are written; Bonsai mode defaults to Measured.
 };
 
 enum class ParseResult
@@ -52,8 +51,5 @@ const char *variance_method_name(VarianceMethod variance_method);
 
 // The name of an LTQ estimate as written to sanity_command.txt ("posterior", "measured" or "both").
 const char *ltq_estimate_name(LtqEstimate ltq_estimate);
-
-// The name of a measured expansion as written to sanity_command.txt ("posterior-mode" or "likelihood-maximum").
-const char *measured_expansion_name(MeasuredExpansion measured_expansion);
 
 #endif
