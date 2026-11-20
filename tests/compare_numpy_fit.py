@@ -1,16 +1,16 @@
-"""Check Sanity's output against an independent NumPy implementation of Section 2 of the error-bar note.
+"""Check Sanity's output against an independent NumPy implementation of its fit.
 
-"note" is E. van Nimwegen, "Getting proper error-bars in Sanity" (update_final_proper_error_bars.pdf); equation numbers
-below are its Section 2. "SI" is the Supplementary Information of Breda, Zavolan & van Nimwegen, Nat. Biotechnol. 2021.
+"SI" is the Supplementary Information of Breda, Zavolan & van Nimwegen, Nat. Biotechnol. 2021.
 
 For every gene of a small count matrix this script solves q_g at every grid point by bisection (with its own Lambert W
-iteration), computes L(v) from Eqs. 36-38 with the actual mean <x*>, the estimates at the selected grid point (Eqs. 32,
-33, 39, 41, 43, 44, 46) and the MARG averages (Eqs. 47-50), and compares them with the -e 1 -npy output of the Sanity
-binary for all four variance methods. It also checks the identities the note relies on:
-sum_c f*_c = 1, <x*> = log(n) - q, Eq. 41 against the diagonal of the inverted precision matrix of Eq. 35, Eq. 40 and
-Eq. 43 against the full inverse, and that Eqs. 36-38 equal the SI's L(v) up to a constant over the grid.
+iteration), computes the log likelihood L(v) with the actual mean <x*>, the estimates at the selected grid point (the
+posterior LTQs, their variances, the gene mean and its variance, the measurement LTQs and their variances) and the MARG
+averages over the grid, and compares them with the -e 1 -npy output of the Sanity binary for all four variance
+methods. It also checks the identities the fit relies on: sum_c f*_c = 1, <x*> = log(n) - q, the closed-form posterior
+variances against the diagonal of the numerically inverted precision matrix, the closed-form covariance and the
+variance of the gene mean against the full inverse, and that L(v) equals the SI's L(v) up to a constant over the grid.
 
-Usage: python3 compare_section2.py [--sanity ../bin/Sanity] [--counts matrix.tsv] [--keep]
+Usage: python3 compare_numpy_fit.py [--sanity ../bin/Sanity] [--counts matrix.tsv] [--keep]
 Without --counts a synthetic matrix of 24 genes x 60 cells is generated (deterministically). The script needs NumPy.
 """
 import argparse
@@ -24,7 +24,7 @@ import numpy as np
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-# Section 2 in NumPy
+# The fit in NumPy
 # ----------------------------------------------------------------------------------------------------------------------
 
 def lambert_w_of_exp(s):
@@ -41,7 +41,7 @@ def lambert_w_of_exp(s):
 
 
 def fractions_at(q, counts, n, v, log_N):
-    """f*_c of Eq. 31 for a given q, with -q = <log f> - <log N> enforced by the caller through sum_c f*_c = 1."""
+    """The fractions f*_c at the posterior optimum for a given q, with -q = <log f> - <log N> enforced by the caller through sum_c f*_c = 1."""
     return lambert_w_of_exp(np.log(n * v) + counts * v + log_N - q) / (n * v)
 
 
@@ -69,15 +69,15 @@ def solve_q(counts, n, v, log_N, sum_N):
 
 
 def log_likelihood(counts, n, v, log_N, f):
-    """L(v) of Eqs. 36-38 (note), with x*_c of Eq. 32 and the actual mean <x*>."""
+    """L(v): the log posterior at the optimum x*_c minus half the log determinant of its precision matrix."""
     C = counts.size
-    x = np.log(f) + np.log(n) - log_N                               # Eq. 32
+    x = np.log(f) + np.log(n) - log_N                               # x*_c, the posterior LTQ
     deviation = x - x.mean()
     log_posterior = (-0.5 * (C - 1) * np.log(v) + (counts * x).sum() - (n * f).sum()
-                     - (deviation ** 2).sum() / (2 * v))             # Eq. 36
+                     - (deviation ** 2).sum() / (2 * v))             # the log posterior at the optimum, with the actual mean <x*>
     nfv = n * f * v
-    log_det = -C * np.log(v) + np.log1p(nfv).sum() + np.log((nfv / (nfv + 1)).mean())  # Eq. 38
-    return log_posterior - 0.5 * log_det                            # Eq. 37
+    log_det = -C * np.log(v) + np.log1p(nfv).sum() + np.log((nfv / (nfv + 1)).mean())  # log det of the precision matrix
+    return log_posterior - 0.5 * log_det                            # L(v)
 
 
 def log_likelihood_si(counts, n, v, log_N, f, q):
@@ -91,21 +91,21 @@ def log_likelihood_si(counts, n, v, log_N, f, q):
 
 
 def estimates_at(counts, n, v, log_N, f):
-    """Everything Section 2 reports at one v: x*, epsilon^2, x^m, its error, mu and sigma_mu^2."""
+    """Everything the fit reports at one v: x*, epsilon^2, x^m, its error, mu and sigma_mu^2."""
     C = counts.size
-    x = np.log(f) + np.log(n) - log_N                 # Eq. 32
-    mu = x.mean()                                     # Eq. 33
-    v_c = v / (n * f * v + 1)                         # Eq. 39
+    x = np.log(f) + np.log(n) - log_N                 # x*_c, the posterior LTQ
+    mu = x.mean()                                     # the gene mean
+    v_c = v / (n * f * v + 1)                         # posterior variance with the gene mean fixed
     mean_v = v_c.mean()
-    eps_sq = v_c + v_c ** 2 / (C * (v - mean_v))      # Eq. 41
-    sigma_mu_sq = (mean_v / C) / (1 - mean_v / v)     # Eq. 43
-    x_m = x + (x - mu) / (n * f * v)                  # Eq. 44
-    x_m_err_sq = 1 / (n * f)                          # Eq. 46
+    eps_sq = v_c + v_c ** 2 / (C * (v - mean_v))      # posterior variance, uncertainty of the mean included
+    sigma_mu_sq = (mean_v / C) / (1 - mean_v / v)     # variance of the gene mean
+    x_m = x + (x - mu) / (n * f * v)                  # measurement LTQ: the prior divided out
+    x_m_err_sq = 1 / (n * f)                          # its variance
     return dict(x=x, eps_sq=eps_sq, x_m=x_m, x_m_err_sq=x_m_err_sq, mu=mu, sigma_mu_sq=sigma_mu_sq, v_c=v_c)
 
 
 def precision_matrix(n, v, f):
-    """M of Eq. 35."""
+    """M, the precision matrix of the posterior over the cells."""
     C = f.size
     return np.diag(n * f + 1 / v) - 1 / (C * v)
 
@@ -124,7 +124,7 @@ def fit_gene(counts, log_N, sum_N, grid, method):
     P_k = np.exp(L_k - L_k.max())
     P_k /= P_k.sum()
     if method == "MARG":
-        # Eqs. 47-50, with Eq. 41 and Eq. 43 at every grid point.
+        # The averages over the grid, with the posterior variances of every grid point.
         x = np.zeros(C); eps_sq = np.zeros(C); x_m = np.zeros(C); x_m_err_sq = np.zeros(C)
         mu_k = np.empty(K); sig_k = np.empty(K)
         per_bin = []
@@ -162,23 +162,23 @@ def fit_gene(counts, log_N, sum_N, grid, method):
 # ----------------------------------------------------------------------------------------------------------------------
 
 def check_identities(counts, log_N, sum_N, grid, report):
-    """The identities of Section 2 at the MAP grid point of one gene, and the L(v) equivalence over the grid."""
+    """The identities of the fit at the MAP grid point of one gene, and the L(v) equivalence over the grid."""
     n = counts.sum()
     C = counts.size
     est = fit_gene(counts, log_N, sum_N, grid, "MAP")
     v, f, q = est["v"], est["f"], est["q_k"][est["k"]]
     report("sum_c f*_c - 1", abs(f.sum() - 1), 1e-12)
     report("<x*> - (log n - q)", abs(est["mu"] - (np.log(n) - q)), 1e-12)
-    # Eq. 30 at the optimum: x*_c - <x*> = v (n_c - n f*_c).
-    report("Eq. 30 residual", np.abs((est["x"] - est["mu"]) - v * (counts - n * f)).max(), 1e-9)
-    # Eqs. 40, 41, 43 against the inverse of M (Eq. 35); the tolerance allows for the conditioning of a C x C inverse.
+    # The condition for the optimum: x*_c - <x*> = v (n_c - n f*_c).
+    report("optimum condition residual", np.abs((est["x"] - est["mu"]) - v * (counts - n * f)).max(), 1e-9)
+    # The closed-form covariance, posterior variances and variance of the mean against the inverse of M; the tolerance allows for the conditioning of a C x C inverse.
     cov = np.linalg.inv(precision_matrix(n, v, f))
     v_c = est["v_c"]
     cov_40 = np.diag(v_c) + np.outer(v_c, v_c) / (C * (v - v_c.mean()))
-    report("Eq. 40 vs inv(M), max abs", np.abs(cov - cov_40).max(), 1e-8 * np.abs(cov).max())
-    report("Eq. 41 vs diag inv(M), max rel", (np.abs(np.diag(cov) - est["eps_sq"]) / np.diag(cov)).max(), 1e-8)
-    report("Eq. 43 vs mean of inv(M), rel", abs(cov.sum() / C ** 2 - est["sigma_mu_sq"]) / est["sigma_mu_sq"], 1e-8)
-    # Eqs. 36-38 minus the SI's L(v) is constant over the grid.
+    report("covariance vs inv(M), max abs", np.abs(cov - cov_40).max(), 1e-8 * np.abs(cov).max())
+    report("posterior variance vs diag inv(M), rel", (np.abs(np.diag(cov) - est["eps_sq"]) / np.diag(cov)).max(), 1e-8)
+    report("variance of mean vs mean of inv(M), rel", abs(cov.sum() / C ** 2 - est["sigma_mu_sq"]) / est["sigma_mu_sq"], 1e-8)
+    # L(v) minus the SI's L(v) is constant over the grid.
     diff = []
     for k, vk in enumerate(grid):
         fk = fractions_at(est["q_k"][k], counts, n, vk, log_N)
@@ -249,7 +249,7 @@ def main():
         if not ok:
             failures.append((gene, label, value))
 
-    temporary = tempfile.mkdtemp(prefix="sanity-section2-")
+    temporary = tempfile.mkdtemp(prefix="sanity-numpy-fit-")
     directory = Path(temporary)
     matrix = directory / "counts.tsv"
     with matrix.open("w") as stream:
@@ -307,7 +307,7 @@ def main():
         for gene, label, value in failures:
             print(f"  {gene}: {label} = {value:.3e}")
     else:
-        print("PASSED: Sanity matches the Section 2 reference for MAP, MLE, EAP and MARG, and the identities hold.")
+        print("PASSED: Sanity matches the NumPy reference for MAP, MLE, EAP and MARG, and the identities hold.")
     if args.keep:
         print("Outputs kept in", directory)
     else:

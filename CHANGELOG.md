@@ -16,22 +16,21 @@
 - `Sanity_distance` and `Sanity_gene_correlation` read the new file names and take the prior-free values from
   `ltqs_measurement_approx` instead of dividing the prior out themselves (SI Eqs. 62, 63), which was inexact once
   the posterior error bars carried the uncertainty on the gene mean.
-- The fit estimates the log transcription quotients x_gc directly instead of the log fold changes, following
-  Section 2 of E. van Nimwegen's note "Getting proper error-bars in Sanity".
+- The fit estimates the log transcription quotients x_gc directly instead of the log fold changes.
   The selected gene variance v_g is unchanged, and so is
   delta_gc = x*_gc - mu_g; mu_g is now the mean of x*_gc over the cells (a shift of log(n_g) - psi(n_g)), and the
-  error bars on x_gc and mu_g come from the full posterior covariance over the cells (note Eqs. 41, 43).
+  error bars on x_gc and mu_g come from the full posterior covariance over the cells.
 - The asymmetric error bar for zero-count cells is gone; every cell gets the posterior error bar. MARG is several
   times faster as a result.
 - The posterior error bar on x_gc no longer combines the error bars on mu_g and delta_gc of 2.0: it is the
   posterior standard deviation itself, which already includes the uncertainty on mu_g.
 
 ### Added
-- The measurement LTQs x^m_gc (the posterior with the prior divided out, note Eq. 44) with error bars
-  1/sqrt(n_g f*_gc) (Eq. 46): `ltqs_measurement_approx` and `ltqs_measurement_approx_error_bars`, written with
+- The measurement LTQs x^m_gc (the posterior with the prior divided out) with error bars
+  1/sqrt(n_g f*_gc): `ltqs_measurement_approx` and `ltqs_measurement_approx_error_bars`, written with
   `-e 1`, in Bonsai output mode, or selected with the new `--ltq-estimate` (`-ltq`) option (`posterior`, `measured`
   or `both`); `sanity_command.txt` records `# LTQ estimate:`.
-- `tests/compare_section2.py`: an independent NumPy implementation of the fit's equations that the output is
+- `tests/compare_numpy_fit.py`: an independent NumPy implementation of the fit's equations that the output is
   checked against.
 
 ## [2.0.0] - 2026-07-29

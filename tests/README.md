@@ -52,19 +52,20 @@ teams, stale row indexes, malformed entries and truncated rows. The script
 uses NumPy, compiles a temporary driver with `CXX` (default `g++`), and removes
 its temporary files.
 
-## Section 2 reference
+## Independent NumPy reference
 
-Run `python3 compare_section2.py` after compiling. It is an independent NumPy
-implementation of Section 2 of E. van Nimwegen's note "Getting proper
-error-bars in Sanity" (the formulas Sanity's fit implements): q_g is solved by
-bisection with its own Lambert W iteration, L(v) comes from Eqs. 36–38, the
-estimates at the selected grid point from Eqs. 32, 33, 39, 41, 43, 44 and 46,
-and the MARG averages from Eqs. 47–50. The script compares the `-e 1 -npy`
-output of all four `-v_m` methods with these, on a synthetic 24 x 60 matrix or
-on a TSV given with `--counts`, and checks the identities the note relies on
-(`sum_c f*_c = 1`, `<x*> = log(n_g) - q_g`, Eqs. 40, 41 and 43 against the
-numerically inverted precision matrix of Eq. 35, and the constant offset
-between Eqs. 36–38 and the previous likelihood). It exits with 1 if any check fails.
+Run `python3 compare_numpy_fit.py` after compiling. It is an independent NumPy
+implementation of the formulas Sanity's fit implements: q_g is solved by
+bisection with its own Lambert W iteration, then come the log likelihood L(v),
+the estimates at the selected grid point (the posterior LTQs and their
+variances, the gene mean and its variance, the measurement LTQs and their
+variances) and the MARG averages over the grid. The script compares the
+`-e 1 -npy` output of all four `-v_m` methods with these, on a synthetic
+24 x 60 matrix or on a TSV given with `--counts`, and checks the identities
+the fit relies on (`sum_c f*_c = 1`, `<x*> = log(n_g) - q_g`, the closed-form
+covariance, posterior variances and variance of the gene mean against the
+numerically inverted precision matrix of the posterior, and the constant
+offset between L(v) and the previous likelihood). It exits with 1 if any check fails.
 
 ## Inference changes
 

@@ -75,8 +75,8 @@ python3 compare.py
 ## Source layout
 
 The top level of `src` holds the Sanity-specific code: the three programs (`sanity_main.cpp`, `sanity_distance.cpp`, `sanity_gene_correlation.cpp`), the per-gene fit (`gene_fit`), the solver for the cell fractions at one gene variance (`fit_frac`) and `Version.h`.
-The fit implements Section 2 of E. van Nimwegen's note "Getting proper error-bars in Sanity"; comments say in a
-few words what each quantity is, and cite the equation numbers of the 2021 SI where it has them ("SI Eq. 34").
+Comments say in a few words what each quantity is, and cite the equation numbers of the 2021 SI where it has them
+("SI Eq. 34").
 Within `gene_fit.cpp`, per-cell quantities are
 computed in passes over the cells rather than stored, and anything averaged over the variance grid (MARG) is
 accumulated bin by bin; keep it that way, and keep multithreaded runs bit-identical to `-n 1` (no reductions whose
@@ -142,10 +142,10 @@ the two makes a change very hard to review.
 ### Testing
 
 Sanity does not have a comprehensive test suite. `tests/compare.py` checks the output of a run
-against checked-in reference outputs for all four `-v_m` methods, and `tests/compare_section2.py`
+against checked-in reference outputs for all four `-v_m` methods, and `tests/compare_numpy_fit.py`
 checks it against an independent NumPy implementation of the fit's equations; see [tests/README.md](tests/README.md).
 Any change that is meant to be behaviour-preserving should leave the `compare.py` outputs identical; a change that
-alters the inference on purpose must pass `compare_section2.py` (adapted if the equations change) before the
+alters the inference on purpose must pass `compare_numpy_fit.py` (adapted if the equations change) before the
 reference outputs are regenerated, and the commit that regenerates them should say so. If you
 add a feature or fix a bug, adding a test is very welcome.
 

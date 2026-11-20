@@ -8,7 +8,7 @@ J Breda, M Zavolan, E van Nimwegen - Nature Biotechnology, 2021](https://www.nat
 Sanity infers the log expression levels *x<sub>gc</sub>* of gene *g* in cell *c* by filtering out 
 the Poisson noise on the UMI count matrix *n<sub>gc</sub>* of gene *g* in cell *c*.
 
-The fit estimates the log transcription quotients (LTQs) *x<sub>gc</sub>* directly, with error bars from the full posterior over the cells, following Section 2 of E. van Nimwegen's note "Getting proper error-bars in Sanity".
+The fit estimates the log transcription quotients (LTQs) *x<sub>gc</sub>* directly, with error bars from the full posterior over the cells.
 
 
 
@@ -74,8 +74,7 @@ error bars *&epsilon;<sub>gc</sub>* (the diagonal of the posterior covariance of
 the uncertainty on the gene mean), the mean LTQ *&mu;<sub>g</sub> = &lang;x\*&rang;* with its error bar, and the
 measurement LTQs *x<sup>m</sup><sub>gc</sub>* (the posterior with the prior divided out) with error bars
 *1/sqrt(n<sub>g</sub> f\*<sub>gc</sub>)*. MARG makes the same estimates at every grid point and averages them over the
-posterior of *v<sub>g</sub>*, bin by bin. The formulas are those of Section 2 of the note "Getting proper error-bars in
-Sanity" (Eqs. 31–50), and the selected *v<sub>g</sub>* is the same as in version 2.0. Zero-count cells get the same posterior error bar as every other cell; the earlier asymmetric
+posterior of *v<sub>g</sub>*, bin by bin. The selected *v<sub>g</sub>* is the same as in version 2.0. Zero-count cells get the same posterior error bar as every other cell; the earlier asymmetric
 zero-count error bar is gone. Runs with different `-n` give bit-identical results.
 
 Text output uses fixed six-decimal formatting. Each inference worker formats
@@ -96,7 +95,7 @@ noise and can be very large for cells with few expected counts. `--ltq-estimate`
 file.
 
 The measurement estimates are the Gaussian that a second-order expansion of the Poisson log-likelihood of each cell
-around *x\*<sub>gc</sub>* makes of it (Eqs. 44 and 46 of the note). They are a local expansion, not a point estimate:
+around *x\*<sub>gc</sub>* makes of it. They are a local expansion, not a point estimate:
 for a count far above the count expected at the gene mean, *x<sup>m</sup><sub>gc</sub>* lies far from any plausible
 LTQ (it can even be positive) with a correspondingly wide error bar. Read as a precision and a slope they are what a
 downstream method with a prior of its own needs, and that is how Bonsai uses them; do not plot or threshold
@@ -296,7 +295,7 @@ python3 sort_mtx_by_row.py -i input.mtx
 ```
 
 ## Tests
-A simple test comparing Sanity's output across the `-v_m` methods (MAP, EAP, MLE, MARG) on a small count matrix is available in the `tests` directory, together with an independent NumPy implementation of the fit's equations (`tests/compare_section2.py`). See [tests/README.md](tests/README.md) for details on running them.
+A simple test comparing Sanity's output across the `-v_m` methods (MAP, EAP, MLE, MARG) on a small count matrix is available in the `tests` directory, together with an independent NumPy implementation of the fit's equations (`tests/compare_numpy_fit.py`). See [tests/README.md](tests/README.md) for details on running them.
 
 ## Help
 For any questions or assistance regarding Sanity, please post your question in the issues section.
