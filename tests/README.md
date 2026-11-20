@@ -32,8 +32,8 @@ Note: `compare.py` exits with code 0 if every method passed, and 1 if any method
 
 ## Matrix Market reader
 
-After compiling, run `python3 compare_mtx.py`. It compares complete Bonsai NPY
-outputs and identifier order against TSV input using the default thread setting
+After compiling, run `python3 compare_mtx.py`. It compares the NPY output of
+Bonsai output mode and identifier order against TSV input using the default thread setting
 and `-n 1`, `-n 2`, and `-n 12`. It covers the parallel integral-count path,
 fractional counts, gzip input, and removal of an empty gene. Temporary inputs
 and outputs are removed automatically.
@@ -61,12 +61,7 @@ bisection with its own Lambert W iteration, L(v) comes from Eqs. 36–38, the
 estimates at the selected grid point from Eqs. 32, 33, 39, 41, 43, 44 and 46,
 and the MARG averages from Eqs. 47–50. The script compares the `-e 1 -npy`
 output of all four `-v_m` methods with these, on a synthetic 24 x 60 matrix or
-on a TSV given with `--counts`, once per value of `--measured-expansion`
-(`posterior-mode`: Eqs. 44 and 46 for every cell; `likelihood-maximum`:
-`log(n_gc/N_c)` with error bar `1/sqrt(n_gc)` for nonzero counts, Eqs. 44 and
-46 for zero counts). It also checks that the two expansions give bit-identical
-files except for `measured_ltq*`, whose zero-count entries must be identical
-too. Finally it checks the identities the note relies on
+on a TSV given with `--counts`, and checks the identities the note relies on
 (`sum_c f*_c = 1`, `<x*> = log(n_g) - q_g`, Eqs. 40, 41 and 43 against the
 numerically inverted precision matrix of Eq. 35, and the constant offset
 between Eqs. 36–38 and the previous likelihood, see
@@ -83,10 +78,10 @@ python3 compare_inference.py --reference /path/to/previous/bin/Sanity
 An optional `--candidate` selects a different candidate executable. This checks
 all four variance methods on TSV and fractional MTX inputs, a broad count range,
 empty genes and a custom variance grid.
-Extended text, float64 arrays, Bonsai arrays and identifier order must match
+Extended text, NPY arrays, Bonsai-mode arrays and identifier order must match
 exactly. Command metadata is excluded because the executable paths differ.
-A reference built before `-npy` wrote every selected result as NPY (before the
-output clean-up) writes a different set of `-npy` files, so those comparisons fail.
+A reference older than 3.0 writes other file names, so the comparison only
+works between 3.0 builds.
 Inputs and outputs are generated in a temporary directory and removed.
 
 The inference comparison also covers cached fitting constants, including
