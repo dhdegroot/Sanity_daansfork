@@ -11,7 +11,6 @@
 #include "sanity_options.hpp"
 
 // "SI" in the comments is the Supplementary Information of Breda, Zavolan & van Nimwegen, Nat. Biotechnol. 2021.
-// "note" is E. van Nimwegen, "Getting proper error-bars in Sanity" (update_final_proper_error_bars.pdf), Section 2.
 
 // Creates the output folder (its parent must exist). Logs the reason and returns false if it cannot.
 bool prepare_output_folder(const SanityOptions &options);
@@ -23,13 +22,13 @@ void write_command_metadata(const SanityOptions &options, int argc, char **argv)
 // whatever the run's options; see field_file_name in sanity_output.cpp.
 enum class OutputField
 {
-    Ltq,                // x*_gc, the posterior log transcription quotients (note Eq. 32; MARG: Eq. 47).
-    LtqError,           // epsilon_gc, the posterior error bars on x_gc (note Eq. 41; MARG: Eq. 48).
-    MeasuredLtq,        // x^m_gc, the measurement LTQs with the prior divided out (note Eq. 44).
-    MeasuredLtqError,   // 1/sqrt(n_g f*_gc), the measurement error bars (note Eq. 46).
-    MeanLtq,            // mu_g (note Eq. 33; MARG: Eq. 49).
-    MeanLtqError,       // sigma_mu, the standard deviation of mu_g (note Eq. 43; MARG: Eq. 50).
-    GeneVariance,       // v_g (note Eq. 25).
+    Ltq,                // x*_gc, the posterior log transcription quotients (MARG: averaged over the grid).
+    LtqError,           // epsilon_gc, the posterior error bars on x_gc (MARG: averaged, plus the spread over the grid).
+    MeasuredLtq,        // x^m_gc, the measurement LTQs with the prior divided out.
+    MeasuredLtqError,   // 1/sqrt(n_g f*_gc), the measurement error bars.
+    MeanLtq,            // mu_g, the mean LTQ of the gene (MARG: averaged over the grid).
+    MeanLtqError,       // sigma_mu, the standard deviation of mu_g.
+    GeneVariance,       // v_g, the gene variance.
     VarianceLikelihood  // P(v_b | n_g) on the grid of variances (SI Eq. 34).
 };
 

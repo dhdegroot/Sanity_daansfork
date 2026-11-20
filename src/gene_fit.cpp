@@ -8,24 +8,22 @@
 #include <vector>
 
 // "SI" is the Supplementary Information of Breda, Zavolan & van Nimwegen, Nat. Biotechnol. 2021.
-// "note" is E. van Nimwegen, "Getting proper error-bars in Sanity" (update_final_proper_error_bars.pdf), Section 2.
 // Index letters at the end of a name give what an array runs over: c = cells, b = grid points of the gene variance v_g.
 // Where the SI has n_g + 1 (Eqs. 16, 19, 26, 31, 44, 46) this code uses n_g.
 // This is intentional: the prior over alpha_g differs from the one in the SI.
 //
-// The fit estimates the LTQs x_gc of one gene directly (note Section 2) rather than the log fold changes delta_gc.
+// The fit estimates the LTQs x_gc of one gene directly rather than the log fold changes delta_gc.
 // get_gene_expression_level (at the end of this file) has two stages:
 //   1. One pass over the grid of candidate variances v_b. At each grid point fit_fractions solves for q_g(v_b) and
-//      the fractions f*_gc (note Eq. 31), from which the log likelihood L(v_b) (note Eqs. 36-38), the mean LTQ
-//      mu_g(v_b) (Eq. 33) and its variance sigma_mu^2(v_b) (Eq. 43) follow. Only q_g, L, mu_g and sigma_mu^2 are
+//      the fractions f*_gc, from which the log likelihood L(v_b), the mean LTQ mu_g(v_b) and its variance
+//      sigma_mu^2(v_b) follow. Only q_g, L, mu_g and sigma_mu^2 are
 //      kept per grid point.
 //   2. Either one grid point is selected and the cell estimates are made there (MLE, MAP, EAP), or a second pass over
-//      the grid makes the cell estimates at every grid point and averages them over the posterior of v_g (MARG,
-//      note Eqs. 47-50).
+//      the grid makes the cell estimates at every grid point and averages them over the posterior of v_g (MARG).
 // Both branches make the cell estimates with the same functions: reconstruct_fractions (fit_frac.cpp), which gives
 // f*_gc back from q_g, compute_ltqs, which turns f*_gc into x*_gc and the sums over cells that the error bars need,
 // and cell_error_bars, which gives the error bars and the measurement LTQ of one cell. The renormalised variances
-// v_gc of Eq. 39 are never stored: they are computed in the first pass for their average and again in the second.
+// v_gc = v_g / (n_g f*_gc v_g + 1) are never stored: they are computed in the first pass for their average and again in the second.
 // MARG averages the cell estimates over the grid as it goes, so no estimates are stored per grid point.
 
 GeneWorkspace::GeneWorkspace(int num_cells, int num_bins, VarianceMethod variance_method)
@@ -40,8 +38,8 @@ GeneWorkspace::GeneWorkspace(int num_cells, int num_bins, VarianceMethod varianc
     }
 }
 
-// The sums over cells at one v_g that the likelihood (note Eq. 38) and the error bars (Eqs. 41, 43) need.
-// With w_gc = n_g f*_gc v_g + 1, the renormalised variance of Eq. 39 is v_gc = v_g / w_gc, and
+// The sums over cells at one v_g that the likelihood and the error bars need.
+// With w_gc = n_g f*_gc v_g + 1, the posterior variance of a cell with mu_g fixed is v_gc = v_g / w_gc, and
 // <v> = v_g sum_inverse_curvature / C and v_g - <v> = v_g sum_shrinkage / C, both without cancellation.
 struct CellSums
 {
@@ -50,7 +48,7 @@ struct CellSums
     double sum_inverse_curvature;  // sum_c 1 / w_gc
 };
 
-// x*_gc of every cell at one v_g (note Eq. 32), written to ltq_c, and the sums over cells of CellSums.
+// x*_gc of every cell at one v_g, written to ltq_c, and the sums over cells of CellSums.
 // log_gene_total = log(n_g), total_times_variance = n_g v_g.
 static CellSums compute_ltqs(const std::vector<double>& fractions_c, double log_gene_total, double total_times_variance,
                              const std::vector<double>& log_cell_totals_c, double* ltq_c)
@@ -59,7 +57,7 @@ static CellSums compute_ltqs(const std::vector<double>& fractions_c, double log_
     CellSums sums{0.0, 0.0, 0.0};
     for (int c = 0; c < num_cells; ++c)
     {
-        ltq_c[c] = std::log(fractions_c[c]) + log_gene_total - log_cell_totals_c[c]; // x*_gc (Eq. 32)
+        ltq_c[c] = std::log(fractions_c[c]) + log_gene_total - log_cell_totals_c[c]; // x*_gc
         sums.sum_ltq += ltq_c[c];
         const double scaled_expected_count = total_times_variance * fractions_c[c]; // n_g f*_gc v_g
         const double curvature = scaled_expected_count + 1.0;                        // w_gc = n_g f*_gc v_g + 1
@@ -69,7 +67,7 @@ static CellSums compute_ltqs(const std::vector<double>& fractions_c, double log_
     return sums;
 }
 
-// sigma_mu^2 at one v_g (note Eq. 43): <v> / (C (1 - <v>/v_g)), written with the sums of CellSums.
+// sigma_mu^2 at one v_g: <v> / (C (1 - <v>/v_g)), written with the sums of CellSums.
 static inline double mean_ltq_error_sq_from_sums(const CellSums& sums, double gene_variance, int num_cells)
 {
     return gene_variance * sums.sum_inverse_curvature / (num_cells * sums.sum_shrinkage);
@@ -78,9 +76,9 @@ static inline double mean_ltq_error_sq_from_sums(const CellSums& sums, double ge
 // The estimates of one cell at one v_g besides x*_gc.
 struct CellErrorBars
 {
-    double ltq_error_sq;          // epsilon_gc^2 (note Eq. 41)
-    double measured_ltq;          // x^m_gc (note Eq. 44)
-    double measured_ltq_error_sq; // 1/(n_g f*_gc) (note Eq. 46)
+    double ltq_error_sq;          // epsilon_gc^2, the posterior variance of x_gc
+    double measured_ltq;          // x^m_gc, the measurement LTQ
+    double measured_ltq_error_sq; // 1/(n_g f*_gc), its squared error bar
 };
 
 // The error bars and the measurement LTQ of one cell at one v_g, from its fraction f*_gc, its x*_gc, the mean
@@ -89,28 +87,28 @@ static inline CellErrorBars cell_error_bars(double expected_count, double ltq, d
                                             const CellSums& sums)
 {
     const double scaled_expected_count = expected_count * gene_variance;                   // n_g f*_gc v_g
-    const double renormalised_variance = gene_variance / (scaled_expected_count + 1.0);    // v_gc (Eq. 39)
+    const double renormalised_variance = gene_variance / (scaled_expected_count + 1.0);    // v_gc, the posterior variance with mu_g fixed
     CellErrorBars bars;
-    // Eq. 41: v_gc + (1/C) v_gc^2 / (v_g - <v>), with C (v_g - <v>) = v_g sum_shrinkage.
+    // epsilon_gc^2 = v_gc + (1/C) v_gc^2 / (v_g - <v>), with C (v_g - <v>) = v_g sum_shrinkage.
     bars.ltq_error_sq = renormalised_variance + renormalised_variance * renormalised_variance / (gene_variance * sums.sum_shrinkage);
-    bars.measured_ltq = ltq + (ltq - mean_ltq) / scaled_expected_count; // Eq. 44
-    bars.measured_ltq_error_sq = 1.0 / expected_count;                   // Eq. 46
+    bars.measured_ltq = ltq + (ltq - mean_ltq) / scaled_expected_count; // x*_gc with the prior divided out
+    bars.measured_ltq_error_sq = 1.0 / expected_count;                   // the inverse of the Poisson precision n_g f*_gc
     return bars;
 }
 
 // What one grid point contributes to stage 1 besides q_g.
 struct BinSummary
 {
-    double log_likelihood;     // L(v_b) (note Eq. 37)
-    double mean_ltq;           // mu_g(v_b) = <x*> (note Eq. 33)
-    double mean_ltq_error_sq;  // sigma_mu^2(v_b) (note Eq. 43)
+    double log_likelihood;     // L(v_b)
+    double mean_ltq;           // mu_g(v_b) = <x*>
+    double mean_ltq_error_sq;  // sigma_mu^2(v_b)
 };
 
-// L(v_b), the log marginal likelihood at one grid point, from f*_gc and q_g at that point (note Eqs. 36-38), with
-// the mean LTQ and its variance at that point, which come from the same sums over cells.
-// Eq. 36 is the log posterior at the optimum x*_gc = log(f*_gc) + log(n_g) - log(N_c) (Eq. 32); Eq. 37 adds minus
-// half the log determinant of the precision matrix of Eq. 35, which is Eq. 38.
-// The quadratic term of Eq. 36 is summed around log(n_g) - q_g, which is <x*> at the exact optimum (Eq. 33), and
+// L(v_b), the log marginal likelihood at one grid point, from f*_gc and q_g at that point, with the mean LTQ and
+// its variance at that point, which come from the same sums over cells.
+// L(v_b) is the log posterior at the optimum x*_gc = log(f*_gc) + log(n_g) - log(N_c) minus half the log
+// determinant of the posterior precision matrix over the cells.
+// The quadratic term of the log posterior is summed around log(n_g) - q_g, which is <x*> at the exact optimum, and
 // then moved to the actual mean <x*>: sum_c (x_c - <x>)^2 = sum_c (x_c - m)^2 - C (<x> - m)^2 for any m.
 // log1p is used for log(n_g f*_gc v_b + 1) because n_g f*_gc v_b is often much smaller than one.
 // This L(v_b) equals the one of the 2021 SI (Eqs. 20, 32, 33) up to a constant that does not depend on v_b, so the
@@ -121,15 +119,15 @@ static BinSummary bin_log_likelihood(const std::vector<double>& umi_counts_c, co
 {
     const int num_cells = static_cast<int>(umi_counts_c.size());
     const double total_times_variance = gene_total * bin_variance; // n_g v_b
-    const double centre = log_gene_total - log_weighted_total;     // log(n_g) - q_g, the mean <x*> up to the Newton tolerance (Eq. 33).
+    const double centre = log_gene_total - log_weighted_total;     // log(n_g) - q_g, the mean <x*> up to the Newton tolerance.
     CellSums sums{0.0, 0.0, 0.0};
-    double sum_counts_times_ltq = 0.0;   // sum_c n_gc x*_gc, the data term of Eq. 36
-    double sum_fractions = 0.0;          // sum_c f*_gc, which is one up to the Newton tolerance (Eq. 29)
+    double sum_counts_times_ltq = 0.0;   // sum_c n_gc x*_gc, the data term of the log posterior
+    double sum_fractions = 0.0;          // sum_c f*_gc, which is one up to the Newton tolerance
     double sum_centred_ltq_sq = 0.0;     // sum_c (x*_gc - centre)^2
-    double sum_log_curvature = 0.0;      // sum_c log(n_g f*_gc v_b + 1), the second term of Eq. 38
+    double sum_log_curvature = 0.0;      // sum_c log(n_g f*_gc v_b + 1), the per-cell part of the log determinant
     for (int c = 0; c < num_cells; ++c)
     {
-        const double ltq = std::log(fractions_c[c]) + log_gene_total - log_cell_totals_c[c]; // x*_gc (Eq. 32)
+        const double ltq = std::log(fractions_c[c]) + log_gene_total - log_cell_totals_c[c]; // x*_gc
         sums.sum_ltq += ltq;
         sum_counts_times_ltq += umi_counts_c[c] * ltq;
         sum_fractions += fractions_c[c];
@@ -138,22 +136,22 @@ static BinSummary bin_log_likelihood(const std::vector<double>& umi_counts_c, co
         const double scaled_expected_count = total_times_variance * fractions_c[c]; // n_g f*_gc v_b
         const double curvature = scaled_expected_count + 1.0;                        // w_gc
         sum_log_curvature += std::log1p(scaled_expected_count);
-        sums.sum_shrinkage += scaled_expected_count / curvature;                     // C times the average in the last term of Eq. 38
+        sums.sum_shrinkage += scaled_expected_count / curvature;                     // C times the average shrinkage, the last term of the log determinant
         sums.sum_inverse_curvature += 1.0 / curvature;
     }
     BinSummary summary;
-    summary.mean_ltq = sums.sum_ltq / num_cells; // <x*> (Eq. 33)
+    summary.mean_ltq = sums.sum_ltq / num_cells; // <x*>
     summary.mean_ltq_error_sq = mean_ltq_error_sq_from_sums(sums, bin_variance, num_cells);
     const double mean_offset = summary.mean_ltq - centre; // <x*> - centre
     const double sum_ltq_deviation_sq = sum_centred_ltq_sq - num_cells * mean_offset * mean_offset; // sum_c (x*_gc - <x*>)^2
-    // Eq. 36, the log posterior at the optimum.
+    // The log posterior at the optimum.
     const double log_posterior = -0.5 * (num_cells - 1) * std::log(bin_variance)
                                  + sum_counts_times_ltq - gene_total * sum_fractions
                                  - sum_ltq_deviation_sq / (2.0 * bin_variance);
-    // Eq. 38, log det(M) of the precision matrix of Eq. 35.
+    // The log determinant of the posterior precision matrix over the cells.
     const double log_det_precision = -num_cells * std::log(bin_variance) + sum_log_curvature
                                      + std::log(sums.sum_shrinkage / num_cells);
-    summary.log_likelihood = log_posterior - 0.5 * log_det_precision; // Eq. 37
+    summary.log_likelihood = log_posterior - 0.5 * log_det_precision; // L(v_b)
     return summary;
 }
 
@@ -226,8 +224,8 @@ static int select_variance_bin(VarianceMethod variance_method, const std::vector
     return selected_bin;
 }
 
-// MLE, MAP and EAP: report v_b, and every estimate at the selected grid point (note Section 2.10, "once we picked a
-// 'best' v_g"). Two passes over the cells: x*_gc and the sums (compute_ltqs), then the error bars and x^m_gc.
+// MLE, MAP and EAP: report v_b, and every estimate at the selected grid point.
+// Two passes over the cells: x*_gc and the sums (compute_ltqs), then the error bars and x^m_gc.
 static void estimate_at_selected_bin(int selected_bin, const std::vector<double>& umi_counts_c, double gene_total, double log_gene_total,
                                      const std::vector<double>& variance_grid_b, const std::vector<double>& log_cell_totals_c,
                                      GeneWorkspace& workspace, RowComputation& result)
@@ -239,8 +237,8 @@ static void estimate_at_selected_bin(int selected_bin, const std::vector<double>
     result.gene_variance = gene_variance;
     reconstruct_fractions(workspace.fractions_c.data(), umi_counts_c, gene_total, gene_variance, num_cells, log_weighted_total, log_cell_totals_c.data());
     const CellSums sums = compute_ltqs(fractions_c, log_gene_total, gene_total * gene_variance, log_cell_totals_c, result.ltq_c.data());
-    result.mean_ltq = sums.sum_ltq / num_cells; // mu_g = <x*> (Eq. 33)
-    result.mean_ltq_error_sq = mean_ltq_error_sq_from_sums(sums, gene_variance, num_cells); // Eq. 43
+    result.mean_ltq = sums.sum_ltq / num_cells; // mu_g = <x*>
+    result.mean_ltq_error_sq = mean_ltq_error_sq_from_sums(sums, gene_variance, num_cells); // sigma_mu^2
     for (int c = 0; c < num_cells; ++c)
     {
         const CellErrorBars bars = cell_error_bars(gene_total * fractions_c[c], result.ltq_c[c], result.mean_ltq, gene_variance, sums);
@@ -250,12 +248,11 @@ static void estimate_at_selected_bin(int selected_bin, const std::vector<double>
     }
 }
 
-// MARG: make the cell estimates at every grid point and average everything over the posterior P(v_b | n_g)
-// (note Eqs. 47-50). The reported v_g is the posterior mean of the variance.
+// MARG: make the cell estimates at every grid point and average everything over the posterior P(v_b | n_g).
+// The reported v_g is the posterior mean of the variance.
 // The averages over the grid are accumulated one grid point at a time with West's weighted update of the mean and
 // the spread, so only the x*_gc of the current grid point are held. x^m_gc and its error bar are averaged in the
-// same way as x*_gc (Eqs. 47, 48 with 1/(n_g f*_gc(v_b)) as the variance at each grid point); the note does not
-// define a marginal x^m_gc.
+// same way as x*_gc, with 1/(n_g f*_gc(v_b)) as the variance at each grid point.
 static void marginalise_over_variance(const std::vector<double>& umi_counts_c, double gene_total, double log_gene_total,
                                       const std::vector<double>& variance_grid_b, const std::vector<double>& log_cell_totals_c,
                                       GeneWorkspace& workspace, RowComputation& result)
@@ -268,10 +265,10 @@ static void marginalise_over_variance(const std::vector<double>& umi_counts_c, d
     // sum_b P(v_b) (x*_gc(v_b) - <x*_gc>)^2 so far, in West's update, and the same for x^m_gc.
     std::vector<double>& ltq_spread_c = workspace.ltq_spread_c;
     std::vector<double>& measured_ltq_spread_c = workspace.measured_ltq_spread_c;
-    std::vector<double>& ltq_c = result.ltq_c;                                       // x^marg_gc = sum_b P(v_b) x*_gc(v_b) (Eq. 47)
-    std::vector<double>& ltq_error_sq_c = result.ltq_error_sq_c;                     // Eq. 48
+    std::vector<double>& ltq_c = result.ltq_c;                                       // x^marg_gc = sum_b P(v_b) x*_gc(v_b)
+    std::vector<double>& ltq_error_sq_c = result.ltq_error_sq_c;                     // epsilon_gc^2 averaged over the grid, plus the spread of x*_gc over it
     std::vector<double>& measured_ltq_c = result.measured_ltq_c;                     // sum_b P(v_b) x^m_gc(v_b)
-    std::vector<double>& measured_ltq_error_sq_c = result.measured_ltq_error_sq_c;   // as Eq. 48 for x^m_gc
+    std::vector<double>& measured_ltq_error_sq_c = result.measured_ltq_error_sq_c;   // the same for x^m_gc
     std::fill(ltq_c.begin(), ltq_c.end(), 0.0);
     std::fill(ltq_spread_c.begin(), ltq_spread_c.end(), 0.0);
     std::fill(ltq_error_sq_c.begin(), ltq_error_sq_c.end(), 0.0);
@@ -303,14 +300,14 @@ static void marginalise_over_variance(const std::vector<double>& umi_counts_c, d
             measured_ltq_error_sq_c[c] += weight * bars.measured_ltq_error_sq;
         }
     }
-    // Eq. 48: <epsilon^2(v_b)> + <(x*(v_b) - x^marg)^2>; P(v_b) sums to one.
+    // <epsilon^2(v_b)> + <(x*(v_b) - x^marg)^2>; P(v_b) sums to one.
     for (int c = 0; c < num_cells; ++c)
     {
         ltq_error_sq_c[c] += ltq_spread_c[c];
         measured_ltq_error_sq_c[c] += measured_ltq_spread_c[c];
     }
 
-    // The mean LTQ averaged over the grid (Eq. 49), and its variance (Eq. 50) with sigma_mu^2(v_b) from stage 1.
+    // The mean LTQ averaged over the grid, and its variance with sigma_mu^2(v_b) from stage 1.
     double mean_ltq = 0.0;
     for (int b = 0; b < num_bins; b++)
     {
@@ -340,7 +337,7 @@ RowComputation get_gene_expression_level(const std::vector<double> &umi_counts_c
 {
     const int num_cells = static_cast<int>(umi_counts_c.size());
     const int num_bins = static_cast<int>(variance_grid_b.size());
-    const double log_gene_total = std::log(gene_total); // log(n_g), the constant of Eq. 32.
+    const double log_gene_total = std::log(gene_total); // log(n_g).
 
     // Stage 1: fit every grid point, keeping q_g(v_b), L(v_b), mu_g(v_b) and sigma_mu^2(v_b).
     std::optional<double> previous_log_weighted_total; // q_g of the previous grid point, the starting guess for the next fit.
@@ -349,7 +346,7 @@ RowComputation get_gene_expression_level(const std::vector<double> &umi_counts_c
     for (int b = 0; b < num_bins; ++b)
     {
         const double bin_variance = variance_grid_b[b];
-        // We fit log_weighted_total = q_g(v_b) (SI Eq. 22; note Eq. 31); fit_fractions also fills fractions_c with f*_gc.
+        // We fit log_weighted_total = q_g(v_b) (SI Eq. 22); fit_fractions also fills fractions_c with f*_gc.
         const double log_weighted_total = fit_fractions(workspace.fractions_c.data(), umi_counts_c, gene_total, bin_variance, num_cells, previous_log_weighted_total, log_cell_totals_c.data(), sum_cell_totals, workspace.lambert_log_arg_base_c.data());
 
         previous_log_weighted_total = log_weighted_total;

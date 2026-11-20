@@ -8,8 +8,8 @@
 // Which LTQ estimates the per-cell output holds (--ltq-estimate); -e 1 always writes both kinds.
 enum class LtqEstimate
 {
-    Posterior = 0, // x*_gc with the posterior error bars epsilon_gc (note Eqs. 32, 41); the default.
-    Measured = 1,  // x^m_gc with the measurement error bars 1/sqrt(n_g f*_gc) (note Eqs. 44, 46).
+    Posterior = 0, // x*_gc with the posterior error bars epsilon_gc; the default.
+    Measured = 1,  // x^m_gc with the measurement error bars 1/sqrt(n_g f*_gc).
     Both = 2       // Both pairs of files.
 };
 

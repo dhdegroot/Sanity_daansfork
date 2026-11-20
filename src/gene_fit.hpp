@@ -4,7 +4,6 @@
 #include <vector>
 
 // "SI" in the comments is the Supplementary Information of Breda, Zavolan & van Nimwegen, Nat. Biotechnol. 2021.
-// "note" is E. van Nimwegen, "Getting proper error-bars in Sanity" (update_final_proper_error_bars.pdf), Section 2.
 // Index letters at the end of a name give what an array runs over: g = genes, c = cells, b = grid points of the gene variance v_g.
 
 // How the gene variance v_g is estimated. The values index the names returned by variance_method_name (sanity_options.hpp).
@@ -19,13 +18,13 @@ enum class VarianceMethod
 // The results of the fit of one gene: the log transcription quotients (LTQs) x_gc of the gene in every cell.
 struct RowComputation
 {
-    std::vector<double> ltq_c;                   // x*_gc, the posterior LTQ of each cell (note Eq. 32; MARG: Eq. 47).
-    std::vector<double> ltq_error_sq_c;          // epsilon_gc^2, the posterior variance of x_gc (note Eq. 41; MARG: Eq. 48).
-    std::vector<double> measured_ltq_c;          // x^m_gc, the measurement LTQ, i.e. x*_gc with the prior divided out (note Eq. 44).
-    std::vector<double> measured_ltq_error_sq_c; // 1/(n_g f*_gc), the squared measurement error bar of x^m_gc (note Eq. 46).
-    double mean_ltq;                             // mu_g = <x*_g>, the mean LTQ of the gene over the cells (note Eq. 33; MARG: Eq. 49).
-    double mean_ltq_error_sq;                    // sigma_mu^2, the variance of mu_g (note Eq. 43; MARG: Eq. 50).
-    double gene_variance;                        // v_g, the prior variance of the LTQs across cells (note Eq. 25).
+    std::vector<double> ltq_c;                   // x*_gc, the posterior LTQ of each cell (MARG: averaged over the grid).
+    std::vector<double> ltq_error_sq_c;          // epsilon_gc^2, the posterior variance of x_gc, the uncertainty of mu_g included (MARG: averaged, plus the spread over the grid).
+    std::vector<double> measured_ltq_c;          // x^m_gc, the measurement LTQ: x*_gc with the prior divided out.
+    std::vector<double> measured_ltq_error_sq_c; // 1/(n_g f*_gc), the squared measurement error bar of x^m_gc.
+    double mean_ltq;                             // mu_g = <x*_g>, the mean LTQ of the gene over the cells (MARG: averaged over the grid).
+    double mean_ltq_error_sq;                    // sigma_mu^2, the variance of mu_g (MARG: averaged, plus the spread over the grid).
+    double gene_variance;                        // v_g, the prior variance of the LTQs across cells.
     std::vector<double> variance_likelihood_b;   // P(v_b | n_g), the posterior of v_g on the grid of variances (SI Eq. 34).
 };
 
@@ -35,11 +34,11 @@ struct GeneWorkspace
     GeneWorkspace(int num_cells, int num_bins, VarianceMethod variance_method);
 
     std::vector<double> lambert_log_arg_base_c;  // Q_c, the per-cell constants of the fit at one v_g (SI Eq. 24), used by fit_fractions.
-    std::vector<double> fractions_c;             // f*_gc, the fraction of the gene's counts expected in each cell (note Eq. 31).
-    std::vector<double> log_weighted_total_b;    // q_g(v_b) at every grid point (SI Eq. 22; note Eq. 31).
-    std::vector<double> log_likelihood_b;        // L(v_b), the log marginal likelihood at every grid point (note Eq. 37).
-    std::vector<double> mean_ltq_b;              // mu_g(v_b) = <x*_g(v_b)> at every grid point (note Eq. 33).
-    std::vector<double> mean_ltq_error_sq_b;     // sigma_mu^2(v_b) at every grid point (note Eq. 43).
+    std::vector<double> fractions_c;             // f*_gc, the fraction of the gene's counts expected in each cell.
+    std::vector<double> log_weighted_total_b;    // q_g(v_b) at every grid point (SI Eq. 22).
+    std::vector<double> log_likelihood_b;        // L(v_b), the log marginal likelihood at every grid point.
+    std::vector<double> mean_ltq_b;              // mu_g(v_b) = <x*_g(v_b)> at every grid point.
+    std::vector<double> mean_ltq_error_sq_b;     // sigma_mu^2(v_b) at every grid point.
     std::vector<double> bin_ltq_c;               // x*_gc at the current grid point; MARG only.
     std::vector<double> ltq_spread_c;            // The spread of x*_gc(v_b) over the grid seen so far, in West's update; MARG only.
     std::vector<double> measured_ltq_spread_c;   // The same spread of x^m_gc(v_b); MARG only.
